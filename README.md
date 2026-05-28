@@ -1,2 +1,2 @@
 # Projet-groupe-perrr
-Plateforme d'échange entre agriculteurs et clients
+Plateforme de gestion d'agent immobiliers
