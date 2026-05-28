@@ -1,0 +1,42 @@
+server:
+  port: 8222
+
+spring:
+  application:
+    name: service-api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: service-auth
+          uri: lb://service-auth
+          predicates:
+            - Path=/api/auth/**
+
+        - id: service-utilisateur
+          uri: lb://service-utilisateur
+          predicates:
+            - Path=/api/utilisateurs/**
+
+        - id: service-client
+          uri: lb://service-client
+          predicates:
+            - Path=/api/clients/**
+
+        # Ajoute les autres services de la même façon
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
