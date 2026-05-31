@@ -10,7 +10,7 @@ spring:
       enabled: true
 
   datasource:
-    url: "jdbc:postgresql://localhost:55432/authdb"
+    url: "jdbc:postgresql://postgres-auth:5432/authdb"
     username: "auth_user"
     password: "auth_password"
     driver-class-name: "org.postgresql.Driver"
@@ -29,7 +29,7 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://eureka-server:8761/eureka/
 
   instance:
     prefer-ip-address: true
@@ -38,3 +38,4 @@ jwt:
   secret: "ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue"
   access-token-expiration: 300000
   refresh-token-expiration: 604800000
+
