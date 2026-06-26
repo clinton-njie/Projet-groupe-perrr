@@ -37,7 +37,7 @@ public class SignalementService {
             throw new RuntimeException("Vous avez atteint votre limite de signalement journaliere");
         }
         if (request.getType().equals(SignalementType.AGENT)) {
-            if (role.contains("AGENT")) {
+            if (role.contains("ROLE_AGENT")) {
                 throw new RuntimeException("Un agent ne peut pas signaler un autre");
             } else {
                 if (request.getAgentId() == null) {

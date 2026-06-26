@@ -5,6 +5,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,38 +25,38 @@ import com.projet_immo.service_signalements.service.SignalementService;
 @RestController
 @RequestMapping("/signalements")
 public class SignalementController {
-    
+
     @Autowired
     private SignalementService signalementService;
 
-     // Créer un signalement
     @PostMapping
     public ResponseEntity<SignalementResponse> addSignalement(
             @RequestBody SignalementRequest request,
-            @RequestHeader("X-User-Id") Long userId,
-            @RequestHeader("X-User-Role") String role) {
+            @RequestHeader("X-User-Id") Long userId) {
+
+        // Récupérer le rôle depuis le token via Spring Security
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String role = auth.getAuthorities().iterator().next().getAuthority();
+        // ex: "ROLE_AGENT", "ROLE_ADMIN", "ROLE_USER"
 
         SignalementResponse response = signalementService.addSignalement(request, userId, role);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // Récupérer un signalement par son id
     @GetMapping("/{id}")
     public ResponseEntity<GetSignalementResponse> getSignalement(@PathVariable Long id) {
         return ResponseEntity.ok(signalementService.getSignalement(id));
     }
 
-    // Liste complète pour l'admin
     @GetMapping
     public ResponseEntity<List<GetSignalementResponse>> getAllSignalements() {
         return ResponseEntity.ok(signalementService.getAllSignalements());
     }
 
     @PutMapping("/{id}/statut")
-public ResponseEntity<GetSignalementResponse> updateStatut(
-        @PathVariable Long id,
-        @RequestBody StatutRequest statutRequest) {
-
-    return ResponseEntity.ok(signalementService.updateStatut(id, statutRequest.getStatut()));
-}
+    public ResponseEntity<GetSignalementResponse> updateStatut(
+            @PathVariable Long id,
+            @RequestBody StatutRequest statutRequest) {
+        return ResponseEntity.ok(signalementService.updateStatut(id, statutRequest.getStatut()));
+    }
 }
