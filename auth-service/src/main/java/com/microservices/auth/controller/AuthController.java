@@ -6,9 +6,11 @@ import com.microservices.auth.dto.LoginRequest;
 import com.microservices.auth.dto.MessageResponse;
 import com.microservices.auth.dto.RefreshTokenRequest;
 import com.microservices.auth.dto.RegisterRequest;
+import com.microservices.auth.dto.RegisterResponse; // <-- Import du nouveau DTO
 import com.microservices.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus; // <-- Import pour le statut 201
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -24,40 +26,34 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<MessageResponse> register(@Valid @RequestBody RegisterRequest request) {
-
-        MessageResponse response = authService.register(request);
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
+        // Le service retourne maintenant RegisterResponse
+        RegisterResponse response = authService.register(request);
+        
+        // On retourne un statut 201 Created, c'est plus conventionnel pour une création
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-
         AuthResponse response = authService.login(request);
-
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/refresh-token")
     public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-
         AuthResponse response = authService.refreshToken(request);
-
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
     public ResponseEntity<MessageResponse> logout(@Valid @RequestBody RefreshTokenRequest request) {
-
         MessageResponse response = authService.logout(request);
-
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/me")
     public ResponseEntity<CurrentUserResponse> getCurrentUser(Authentication authentication) {
-
         List<String> roles = authentication.getAuthorities()
                 .stream()
                 .map(GrantedAuthority::getAuthority)

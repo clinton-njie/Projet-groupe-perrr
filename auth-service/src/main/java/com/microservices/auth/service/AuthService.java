@@ -5,6 +5,7 @@ import com.microservices.auth.dto.LoginRequest;
 import com.microservices.auth.dto.MessageResponse;
 import com.microservices.auth.dto.RefreshTokenRequest;
 import com.microservices.auth.dto.RegisterRequest;
+import com.microservices.auth.dto.RegisterResponse;
 import com.microservices.auth.entity.RefreshToken;
 import com.microservices.auth.entity.Role;
 import com.microservices.auth.entity.User;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +35,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     @Transactional
-    public MessageResponse register(RegisterRequest request) {
+    public RegisterResponse register(RegisterRequest request) {
 
         String email = request.getEmail().toLowerCase().trim();
 
@@ -58,10 +60,21 @@ public class AuthService {
                 .roles(roles)
                 .build();
 
-        userRepository.save(user);
+        // On sauvegarde l'utilisateur pour être sûr qu'il est bien en base
+        User savedUser = userRepository.save(user);
 
-        return MessageResponse.builder()
+        // On convertit les rôles (Enum) en une liste de chaînes de caractères (String)
+        Set<String> roleNames = savedUser.getRoles().stream()
+                .map(role -> role.getName().name())
+                .collect(Collectors.toSet());
+
+        // On retourne la nouvelle réponse détaillée !
+        return RegisterResponse.builder()
                 .message("Utilisateur inscrit avec succès")
+                .firstname(savedUser.getFirstname())
+                .lastname(savedUser.getLastname())
+                .email(savedUser.getEmail())
+                .roles(roleNames)
                 .build();
     }
 
@@ -84,11 +97,19 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
+        Set<String> roleNames = user.getRoles().stream()
+                .map(role -> role.getName().name())
+                .collect(Collectors.toSet());
+
+        // Retour sans expiresIn, avec les infos utilisateur
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken.getToken())
                 .tokenType("Bearer")
-                .expiresIn(jwtService.getAccessTokenExpiration())
+                .firstname(user.getFirstname())
+                .lastname(user.getLastname())
+                .email(user.getEmail())
+                .roles(roleNames)
                 .build();
     }
 
@@ -109,11 +130,19 @@ public class AuthService {
         String newAccessToken = jwtService.generateAccessToken(user);
         RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
 
+        Set<String> roleNames = user.getRoles().stream()
+                .map(role -> role.getName().name())
+                .collect(Collectors.toSet());
+
+        // On applique la même logique de retour ici
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken.getToken())
                 .tokenType("Bearer")
-                .expiresIn(jwtService.getAccessTokenExpiration())
+                .firstname(user.getFirstname())
+                .lastname(user.getLastname())
+                .email(user.getEmail())
+                .roles(roleNames)
                 .build();
     }
 

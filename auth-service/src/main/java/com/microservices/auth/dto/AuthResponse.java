@@ -1,6 +1,7 @@
 package com.microservices.auth.dto;
 
 import lombok.*;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -16,5 +17,14 @@ public class AuthResponse {
     @Builder.Default
     private String tokenType = "Bearer";
 
-    private long expiresIn;
+    // --- Ajout des informations utilisateur demandées ---
+    private String firstname;
+    
+    private String lastname;
+    
+    private String email;
+    
+    private Set<String> roles;
+    
+    // Le champ expiresIn a été supprimé !
 }
