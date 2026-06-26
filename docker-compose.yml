@@ -1,0 +1,45 @@
+services:
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - projet-immo-network
+
+  postgres-auth:
+    image: postgres:15
+    container_name: postgres-auth
+    environment:
+      POSTGRES_DB: authdb
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "55432:5432"
+    networks:
+      - projet-immo-network
+
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - eureka-server
+      - postgres-auth
+    networks:
+      - projet-immo-network
+
+  api-gateway:
+    build: ./service-api-gateway
+    container_name: api-gateway
+    ports:
+      - "8222:8222"
+    depends_on:
+      - eureka-server
+    networks:
+      - projet-immo-network
+
+networks:
+  projet-immo-network:
+    driver: bridge
