@@ -1,0 +1,30 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: service-signalements   # nom utilisé par Eureka et Feign pour identifier ce service
+
+  datasource:
+    url: jdbc:postgresql://db-signalements:5432/signalements_db
+    # "db-signalements" = nom du conteneur Docker PostgreSQL (pas localhost en Docker)
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update          # crée/met à jour les tables automatiquement au démarrage
+    show-sql: true              # affiche les requêtes SQL dans les logs
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true        # formate les requêtes SQL dans les logs
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka
+      # "eureka-server" = nom du conteneur Docker Eureka
+  instance:
+    prefer-ip-address: true     # Eureka enregistre l'IP du conteneur plutôt que le hostname
