@@ -1,0 +1,40 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: BIEN-SERVICE
+
+  datasource:
+    url: "jdbc:postgresql://postgres-bien:5432/biendb"
+    username: "bien_user"
+    password: "bien_password"
+    driver-class-name: "org.postgresql.Driver"
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+eureka:
+  client:
+    enabled: true
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+jwt:
+  secret: "ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue"
+  access-token-expiration: 300000
+
+actuator:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
