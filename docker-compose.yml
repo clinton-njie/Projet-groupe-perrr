@@ -16,6 +16,28 @@ services:
       POSTGRES_PASSWORD: auth_password
     ports:
       - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d authdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - projet-immo-network
+
+  db-signalements:
+    image: postgres:15
+    container_name: db-signalements
+    environment:
+      POSTGRES_DB: signalements_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d signalements_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - projet-immo-network
 
@@ -25,8 +47,27 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      - eureka-server
-      - postgres-auth
+      postgres-auth:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - projet-immo-network
+
+  service-signalements:
+    build: ./service-signalements
+    container_name: service-signalements
+    ports:
+      - "8086:8086"
+    depends_on:
+      db-signalements:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-signalements:5432/signalements_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
     networks:
       - projet-immo-network
 
