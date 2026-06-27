@@ -1,0 +1,42 @@
+services:
+
+  mysql-visite:
+    image: mysql:8.0
+    container_name: mysql-visite
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: service_visite_db
+      MYSQL_INNODB_BUFFER_POOL_SIZE: 128M
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_visite_data:/var/lib/mysql
+    networks:
+      - projet-immo-network
+    mem_limit: 512m
+
+  service-visite:
+    build: .
+    container_name: service-visite
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    depends_on:
+      - mysql-visite
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-visite:3306/service_visite_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - projet-immo-network
+    mem_limit: 512m
+
+networks:
+  projet-immo-network:
+    external: true
+    name: projet-groupe-perrr_projet-immo-network
+
+volumes:
+  mysql_visite_data:

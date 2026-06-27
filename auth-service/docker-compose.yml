@@ -1,0 +1,40 @@
+services:
+  postgres-auth:
+    image: postgres:16
+    container_name: postgres-auth
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: authdb
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres_auth_data_clean:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
+
+  auth-service:
+    build: .
+    container_name: auth-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-auth:5432/authdb
+      SPRING_DATASOURCE_USERNAME: auth_user
+      SPRING_DATASOURCE_PASSWORD: auth_password
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      JWT_SECRET: ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue
+    depends_on:
+      - postgres-auth
+    networks:
+      - projet-immo-network
+
+networks:
+  projet-immo-network:
+    external: true
+    name: projet-groupe-perrr_projet-immo-network
+
+volumes:
+  postgres_auth_data_clean: 
