@@ -40,6 +40,52 @@ services:
     networks:
       - projet-immo-network
 
+  postgres-user:
+    image: postgres:15
+    container_name: postgres-user
+    environment:
+      POSTGRES_DB: userdb
+      POSTGRES_USER: user_service
+      POSTGRES_PASSWORD: user_password
+    ports:
+      - "55433:5432"
+    networks:
+      - projet-immo-network
+
+  service-utilisateur:
+    build: ./service-user
+    container_name: service-utilisateur
+    ports:
+      - "8082:8082"
+    depends_on:
+      - eureka-server
+      - postgres-user
+    networks:
+      - projet-immo-network
+
+  postgres-messagerie:
+    image: postgres:15
+    container_name: postgres-messagerie
+    environment:
+      POSTGRES_DB: messagerie_db
+      POSTGRES_USER: messagerie_user
+      POSTGRES_PASSWORD: messagerie_password
+    ports:
+      - "55434:5432"
+    networks:
+      - projet-immo-network
+
+  service-messagerie:
+    build: ./service-messagerie
+    container_name: service-messagerie
+    ports:
+      - "8086:8086"
+    depends_on:
+      - eureka-server
+      - postgres-messagerie
+    networks:
+      - projet-immo-network
+
 networks:
   projet-immo-network:
     driver: bridge
