@@ -69,7 +69,7 @@ public class UserController {
     // appartiennent fonctionnellement à l'admin et seront déplacés vers service-admin.
     // processRoleRequest contient l'appel à l'auth-service pour appliquer le changement de rôle —
     // à transférer tel quel.
-    @PutMapping("/{authUserId}/deactivate")
+    @PutMapping("/{authUserId}/desactivate")
     public ResponseEntity<String> deactivateProfile(@PathVariable Long authUserId) {
         return ResponseEntity.ok(userService.deactivateProfile(authUserId));
     }
