@@ -1,0 +1,4 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Thu Jun 25 11:54:12 WAT 2026
+@default-central-https\://repo.maven.apache.org/maven2/.lastUpdated=1782384852720
+https\://repo.maven.apache.org/maven2/.error=Could not transfer artifact org.springframework.cloud\:spring-cloud-openfeign-core\:jar\:javadoc\:5.0.2 from/to central (https\://repo.maven.apache.org/maven2)\: Read timed out

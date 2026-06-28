@@ -1,0 +1,4 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Tue May 26 03:18:45 WAT 2026
+pljava-pgxs-1.6.6.pom>=
+pljava-pgxs-1.6.6.jar>=

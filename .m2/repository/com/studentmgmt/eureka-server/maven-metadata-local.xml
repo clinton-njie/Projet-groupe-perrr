@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.studentmgmt</groupId>
+  <artifactId>eureka-server</artifactId>
+  <versioning>
+    <versions>
+      <version>0.0.1-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20260622032316</lastUpdated>
+  </versioning>
+</metadata>

@@ -1,0 +1,5 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Thu Jun 25 11:08:24 WAT 2026
+spring-cloud-openfeign-core-5.0.2-sources.jar>central=
+spring-cloud-openfeign-core-5.0.2.jar>central=
+spring-cloud-openfeign-core-5.0.2.pom>central=

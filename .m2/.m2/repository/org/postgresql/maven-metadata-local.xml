@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <plugins>
+    <plugin>
+      <name>PL/Java PGXS</name>
+      <prefix>pljava-pgxs</prefix>
+      <artifactId>pljava-pgxs</artifactId>
+    </plugin>
+  </plugins>
+</metadata>
