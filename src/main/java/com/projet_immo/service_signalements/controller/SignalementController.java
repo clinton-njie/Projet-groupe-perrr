@@ -22,6 +22,8 @@ import com.projet_immo.service_signalements.dto.SignalementResponse;
 import com.projet_immo.service_signalements.dto.StatutRequest;
 import com.projet_immo.service_signalements.service.SignalementService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/signalements")
 public class SignalementController {
@@ -31,7 +33,7 @@ public class SignalementController {
 
     @PostMapping
     public ResponseEntity<SignalementResponse> addSignalement(
-            @RequestBody SignalementRequest request,
+            @Valid @RequestBody SignalementRequest request,
             @RequestHeader("X-User-Id") Long userId) {
 
         // Récupérer le rôle depuis le token via Spring Security
@@ -55,7 +57,7 @@ public class SignalementController {
 
     @PutMapping("/{id}/statut")
     public ResponseEntity<GetSignalementResponse> updateStatut(
-            @PathVariable Long id,
+            @Valid @PathVariable Long id,
             @RequestBody StatutRequest statutRequest) {
         return ResponseEntity.ok(signalementService.updateStatut(id, statutRequest.getStatut()));
     }

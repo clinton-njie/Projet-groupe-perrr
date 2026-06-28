@@ -35,13 +35,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/signalements/*/statut").hasAuthority("ROLE_ADMIN")
 
                         // USER et AGENT uniquement
-                        .requestMatchers(HttpMethod.POST, "/signalements").hasAnyAuthority("ROLE_USER", "ROLE_AGENT")
+                        .requestMatchers(HttpMethod.POST, "/signalements").hasAnyAuthority("ROLE_CLIENT", "ROLE_AGENT")
 
                         // USER, AGENT et ADMIN
                         .requestMatchers(HttpMethod.GET, "/signalements/*")
-                        .hasAnyAuthority("ROLE_USER", "ROLE_AGENT", "ROLE_ADMIN")
+                        .hasAnyAuthority("ROLE_CLIENT", "ROLE_AGENT", "ROLE_ADMIN")
 
-                        .anyRequest().authenticated())
+                        .anyRequest().permitAll())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

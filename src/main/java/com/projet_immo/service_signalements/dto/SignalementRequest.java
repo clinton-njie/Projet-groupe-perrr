@@ -5,14 +5,23 @@ import java.time.LocalDate;
 import com.projet_immo.service_signalements.enums.SignalementStatut;
 import com.projet_immo.service_signalements.enums.SignalementType;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 public class SignalementRequest {
+    @NotBlank(message = "Le titre est obligatoire.")
+    @Size(max = 100, message = "Le titre ne doit pas dépasser 100 caractères.")
     private String titre;
+    @NotNull(message = "Le type de signalement est obligatoire.")
     private SignalementType type;
+    @NotBlank(message = "La description est obligatoire.")
     private String description;
     private LocalDate dateSignalement;
     private SignalementStatut statut;
     private Long utilisateurId;
     private Long agentId;
+    
     public String getTitre() {
         return titre;
     }

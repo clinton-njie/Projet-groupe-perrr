@@ -13,6 +13,9 @@ import com.projet_immo.service_signalements.dto.SignalementResponse;
 import com.projet_immo.service_signalements.entity.Signalement;
 import com.projet_immo.service_signalements.enums.SignalementStatut;
 import com.projet_immo.service_signalements.enums.SignalementType;
+import com.projet_immo.service_signalements.exception.AgentCannotReportAgentException;
+import com.projet_immo.service_signalements.exception.DailyLimitExceededException;
+import com.projet_immo.service_signalements.exception.NoInteractionException;
 import com.projet_immo.service_signalements.feignclient.ReservationClient;
 import com.projet_immo.service_signalements.feignclient.UtilisateurClient;
 import com.projet_immo.service_signalements.feignclient.VisiteClient;
@@ -34,18 +37,18 @@ public class SignalementService {
         Long nbSignalement = signalementRepository.countByUtilisateurIdAndDateSignalement(id, LocalDate.now());
         Signalement signalement = new Signalement();
         if (nbSignalement >= 3) {
-            throw new RuntimeException("Vous avez atteint votre limite de signalement journaliere");
+            throw new DailyLimitExceededException();
         }
         if (request.getType().equals(SignalementType.AGENT)) {
             if (role.contains("ROLE_AGENT")) {
-                throw new RuntimeException("Un agent ne peut pas signaler un autre");
+                throw new AgentCannotReportAgentException();
             } else {
                 if (request.getAgentId() == null) {
                     throw new RuntimeException("Aucun agent selectionne");
                 } else {
                     if (!visiteClient.existeInteraction(id, agentId)
                             && !reservationClient.existeInteraction(id, agentId)) {
-                        throw new RuntimeException("Aucune interaction trouvée");
+                        throw new NoInteractionException();
                     }
                 }
                 signalement.setAgentId(agentId);
