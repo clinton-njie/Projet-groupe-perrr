@@ -3,34 +3,25 @@ version: '3.9'
 services:
 
   postgres-abonnement:
-
     image: postgres:18
-
     container_name: abonnement-db
 
     environment:
       POSTGRES_DB: abonnement_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Pos123,.
-
+      POSTGRES_PASSWORD: password
     ports:
       - "5436:5432"
-
     volumes:
       - abonnement_data:/var/lib/postgresql/data
 
   abonnement-service:
-
     build: .
-
     container_name: abonnement-service
-
     depends_on:
       - postgres-abonnement
-
     ports:
-      - "8083:8083"
+      - "8087:8087"
 
 volumes:
-
   abonnement_data:
