@@ -107,10 +107,32 @@ services:
     ports:
       - "8087:8087"
 
+  volumes:
+    abonnement_data:
 
+  postgres-reservation:
+    image: postgres:18
+    container_name: reservation-db
+
+    environment:
+      POSTGRES_DB: reservation_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5436:5432"
+    volumes:
+      - reservation_data:/var/lib/postgresql/data
+
+  reservation-service:
+    build: .
+    container_name: reservation-service
+    depends_on:
+      - postgres-reservation
+    ports:
+      - "8088:8088"
 
 volumes:
-  abonnement_data:
+  reservation_data:
 
 networks:
   projet-immo-network:
