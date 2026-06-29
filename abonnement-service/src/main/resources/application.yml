@@ -1,5 +1,5 @@
 server:
-  port: 8086
+  port: 8087
 
 spring:
   application:
@@ -25,4 +25,4 @@ springdoc:
     path: /swagger-ui.html
 
 jwt:
-  secret: "CHANGE_ME_SUPER_SECRET_KEY_123456789"
+  secret: "cle_secrete"
