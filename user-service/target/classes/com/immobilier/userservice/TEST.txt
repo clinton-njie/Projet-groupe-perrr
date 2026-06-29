@@ -1,0 +1,344 @@
+Excellent. 👍
+
+Maintenant, avant de lancer l'application, il manque encore une partie essentielle :
+
+# 🧱 ÉTAPE 11 — Configuration PostgreSQL + application.yml
+
+Sans cela :
+
+* Spring Boot ne pourra pas démarrer correctement ;
+* JPA ne créera pas les tables ;
+* les repositories ne fonctionneront pas.
+
+---
+
+# 📁 Où créer le fichier ?
+
+Aller dans :
+
+```text
+src/main/resources
+```
+
+Tu dois avoir :
+
+```text
+src
+└── main
+    └── resources
+        └── application.yml
+```
+
+Si tu as `application.properties`, tu peux le supprimer et créer `application.yml`.
+
+---
+
+# 📄 application.yml
+
+## Explication
+
+Ce fichier contient :
+
+* connexion PostgreSQL ;
+* configuration JPA ;
+* logs SQL ;
+* Swagger ;
+* port du microservice.
+
+---
+
+```yaml
+server:
+  port: 8081
+
+spring:
+
+  application:
+    name: user-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/user_service_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+    show-sql: true
+
+    properties:
+      hibernate:
+        format_sql: true
+
+  jackson:
+    serialization:
+      indent-output: true
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+```
+
+---
+
+# 🧱 ÉTAPE 12 — Création de la base PostgreSQL
+
+## Option 1 : pgAdmin
+
+Créer :
+
+```sql
+CREATE DATABASE user_service_db;
+```
+
+---
+
+## Option 2 : psql
+
+```sql
+CREATE DATABASE user_service_db;
+```
+
+---
+
+# 🧱 ÉTAPE 13 — Vérifier les dépendances Maven
+
+## 📄 pom.xml
+
+Tu dois retrouver au minimum :
+
+```xml
+<dependencies>
+
+    <!-- API REST -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- JPA -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+
+    <!-- Validation -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
+    <!-- Sécurité -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+
+    <!-- PostgreSQL -->
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+    </dependency>
+
+    <!-- Lombok -->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+    </dependency>
+
+    <!-- MapStruct -->
+    <dependency>
+        <groupId>org.mapstruct</groupId>
+        <artifactId>mapstruct</artifactId>
+        <version>1.5.5.Final</version>
+    </dependency>
+
+    <!-- Swagger -->
+    <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>2.8.9</version>
+    </dependency>
+
+    <!-- Tests -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+</dependencies>
+```
+
+---
+
+# 🧱 ÉTAPE 14 — Corriger MapStruct (important)
+
+Dans la section `<build>` de ton `pom.xml`, ajoute :
+
+```xml
+<build>
+    <plugins>
+
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+
+            <configuration>
+
+                <source>21</source>
+                <target>21</target>
+
+                <annotationProcessorPaths>
+
+                    <path>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok</artifactId>
+                    </path>
+
+                    <path>
+                        <groupId>org.mapstruct</groupId>
+                        <artifactId>mapstruct-processor</artifactId>
+                        <version>1.5.5.Final</version>
+                    </path>
+
+                </annotationProcessorPaths>
+
+            </configuration>
+
+        </plugin>
+
+    </plugins>
+</build>
+```
+
+---
+
+# 🧱 ÉTAPE 15 — Premier Build
+
+Dans le terminal :
+
+```bash
+mvn clean compile
+```
+
+Puis :
+
+```bash
+mvn clean install
+```
+
+---
+
+# 🧱 ÉTAPE 16 — Premier Démarrage
+
+```bash
+mvn spring-boot:run
+```
+
+Tu devrais voir quelque chose comme :
+
+```text
+Tomcat started on port(s): 8081
+Started UserServiceApplication
+```
+
+---
+
+# 🧱 ÉTAPE 17 — Premier Test Swagger
+
+Ouvre :
+
+```text
+http://localhost:8081/swagger-ui.html
+```
+
+Tu devrais voir :
+
+* POST /users/register
+* GET /users/{id}
+
+---
+
+# 🧱 ÉTAPE 18 — Premier Test Postman
+
+## Créer un utilisateur
+
+POST :
+
+```http
+http://localhost:8081/users/register
+```
+
+Body :
+
+```json
+{
+  "email": "test@test.com",
+  "motDePasse": "123456",
+  "prenom": "Jean",
+  "nom": "Dupont"
+}
+```
+
+---
+
+## Consulter l'utilisateur
+
+GET :
+
+```http
+http://localhost:8081/users/1
+```
+
+---
+
+# ⚠️ Ce qui manque encore
+
+Par rapport à ta spécification initiale, nous avons encore à implémenter :
+
+### Services complets
+
+* updatePrenom()
+* updateNom()
+* updateEmail()
+* updateTelephone()
+* updatePhoto()
+* requestAccountDeletion()
+
+### DemandeAgent complète
+
+* getMesDemandes()
+* validateDemande()
+* rejectDemande()
+
+### InvitationAdmin complète
+
+* createInvitation()
+
+### Contrôleurs complets
+
+* tous les PATCH
+* tous les endpoints Admin
+* tous les endpoints SuperAdmin
+
+### Audit automatique AOP
+
+### Docker
+
+### Eureka Client
+
+### API Gateway
+
+### JWT
+
+### Tests JUnit/Mockito
+
+Je te conseille de faire maintenant le **premier build et de corriger les erreurs de compilation éventuelles** avant de poursuivre les fonctionnalités avancées. C’est généralement le moment où l’on stabilise la base du microservice.
