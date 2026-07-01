@@ -62,6 +62,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleException(Exception ex) {
+        System.out.println(">>> EXCEPTION CAPTURÉE : " + ex.getClass().getName());
+    System.out.println(">>> MESSAGE : " + ex.getMessage());
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)

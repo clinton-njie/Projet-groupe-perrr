@@ -4,9 +4,9 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(name = "service-utilisateurs")
+@FeignClient(name = "SERVICE-UTILISATEUR")
 public interface UtilisateurClient {
-    @GetMapping("/utilisateurs/{id}/email")
+    @GetMapping("/api/users/{id}/email")
     String getEmailById(@PathVariable("id") Long id);
 
 }
