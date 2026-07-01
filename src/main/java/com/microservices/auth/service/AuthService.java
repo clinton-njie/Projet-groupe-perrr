@@ -6,13 +6,14 @@ import com.microservices.auth.dto.MessageResponse;
 import com.microservices.auth.dto.RefreshTokenRequest;
 import com.microservices.auth.dto.RegisterRequest;
 import com.microservices.auth.dto.RegisterResponse;
+import com.microservices.auth.dto.UtilisateurCreateRequest;
 import com.microservices.auth.entity.RefreshToken;
 import com.microservices.auth.entity.Role;
 import com.microservices.auth.entity.User;
 import com.microservices.auth.enumtype.RoleName;
+import com.microservices.auth.feign.UtilisateurClient;
 import com.microservices.auth.repository.RoleRepository;
 import com.microservices.auth.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,7 +25,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -33,6 +33,23 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final UtilisateurClient utilisateurClient;  // ← nouveau
+
+    public AuthService(UserRepository userRepository,
+                       RoleRepository roleRepository,
+                       JwtService jwtService,
+                       RefreshTokenService refreshTokenService,
+                       PasswordEncoder passwordEncoder,
+                       AuthenticationManager authenticationManager,
+                       UtilisateurClient utilisateurClient) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
+        this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
+        this.utilisateurClient = utilisateurClient;
+    }
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
@@ -51,31 +68,46 @@ public class AuthService {
         Set<Role> roles = new HashSet<>();
         roles.add(clientRole);
 
-        User user = User.builder()
-                .firstname(request.getFirstname())
-                .lastname(request.getLastname())
-                .email(email)
-                .password(passwordEncoder.encode(request.getPassword()))
-                .enabled(true)
-                .roles(roles)
-                .build();
+        // On ne met plus firstname/lastname ici — l'entité User n'a plus ces champs
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setEnabled(true);
+        user.setRoles(roles);
 
-        // On sauvegarde l'utilisateur pour être sûr qu'il est bien en base
+        // Étape 1 : sauvegarde dans auth → génère l'id
         User savedUser = userRepository.save(user);
 
-        // On convertit les rôles (Enum) en une liste de chaînes de caractères (String)
+        // Étape 2 : envoyer firstname, lastname et l'id à service-utilisateurs
+        UtilisateurCreateRequest utilisateurRequest = new UtilisateurCreateRequest(
+                savedUser.getId(),
+                request.getFirstname(),
+                request.getLastname(),
+                email
+        );
+
+        try {
+            utilisateurClient.creerUtilisateur(utilisateurRequest);
+        } catch (Exception e) {
+            // Compensation : si service-utilisateurs échoue, on annule la création dans auth
+            userRepository.delete(savedUser);
+            throw new IllegalStateException(
+                    "Échec de la création du profil utilisateur : " + e.getMessage()
+            );
+        }
+
+        // Étape 3 : construire la réponse avec firstname/lastname (depuis le request, pas l'entité)
         Set<String> roleNames = savedUser.getRoles().stream()
                 .map(role -> role.getName().name())
                 .collect(Collectors.toSet());
 
-        // On retourne la nouvelle réponse détaillée !
-        return RegisterResponse.builder()
-                .message("Utilisateur inscrit avec succès")
-                .firstname(savedUser.getFirstname())
-                .lastname(savedUser.getLastname())
-                .email(savedUser.getEmail())
-                .roles(roleNames)
-                .build();
+        return new RegisterResponse(
+                "Utilisateur inscrit avec succès",
+                request.getFirstname(),   // ← vient du request, pas de l'entité
+                request.getLastname(),
+                email,
+                roleNames
+        );
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -83,16 +115,11 @@ public class AuthService {
         String email = request.getEmail().toLowerCase().trim();
 
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        email,
-                        request.getPassword()
-                )
+                new UsernamePasswordAuthenticationToken(email, request.getPassword())
         );
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Utilisateur introuvable"
-                ));
+                .orElseThrow(() -> new IllegalStateException("Utilisateur introuvable"));
 
         String accessToken = jwtService.generateAccessToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
@@ -101,28 +128,27 @@ public class AuthService {
                 .map(role -> role.getName().name())
                 .collect(Collectors.toSet());
 
-        // Retour sans expiresIn, avec les infos utilisateur
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken.getToken())
-                .tokenType("Bearer")
-                .firstname(user.getFirstname())
-                .lastname(user.getLastname())
-                .email(user.getEmail())
-                .roles(roleNames)
-                .build();
+        // firstname/lastname ne viennent plus de l'entité User
+        // → soit on les récupère depuis service-utilisateurs via Feign,
+        //   soit on les retire de AuthResponse (recommandé pour rester simple)
+        return new AuthResponse(
+                accessToken,
+                refreshToken.getToken(),
+                "Bearer",
+                null,   // firstname — voir note ci-dessous
+                null,   // lastname
+                user.getEmail(),
+                roleNames
+        );
     }
 
     @Transactional
     public AuthResponse refreshToken(RefreshTokenRequest request) {
 
         RefreshToken refreshToken = refreshTokenService.findByToken(request.getRefreshToken())
-                .orElseThrow(() -> new IllegalStateException(
-                        "Refresh token introuvable"
-                ));
+                .orElseThrow(() -> new IllegalStateException("Refresh token introuvable"));
 
         RefreshToken verifiedRefreshToken = refreshTokenService.verifyRefreshToken(refreshToken);
-
         User user = verifiedRefreshToken.getUser();
 
         refreshTokenService.revokeRefreshToken(verifiedRefreshToken.getToken());
@@ -134,25 +160,20 @@ public class AuthService {
                 .map(role -> role.getName().name())
                 .collect(Collectors.toSet());
 
-        // On applique la même logique de retour ici
-        return AuthResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken.getToken())
-                .tokenType("Bearer")
-                .firstname(user.getFirstname())
-                .lastname(user.getLastname())
-                .email(user.getEmail())
-                .roles(roleNames)
-                .build();
+        return new AuthResponse(
+                newAccessToken,
+                newRefreshToken.getToken(),
+                "Bearer",
+                null,   // firstname
+                null,   // lastname
+                user.getEmail(),
+                roleNames
+        );
     }
 
     @Transactional
     public MessageResponse logout(RefreshTokenRequest request) {
-
         refreshTokenService.revokeRefreshToken(request.getRefreshToken());
-
-        return MessageResponse.builder()
-                .message("Déconnexion réussie")
-                .build();
+        return new MessageResponse("Déconnexion réussie");
     }
 }

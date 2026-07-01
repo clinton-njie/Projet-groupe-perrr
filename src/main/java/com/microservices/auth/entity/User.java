@@ -24,12 +24,6 @@ public class User {
      * Ces champs ne sont pas obligatoires en base,
      * car un administrateur peut avoir seulement un email et un mot de passe.
      */
-    @Column(length = 100)
-    private String firstname;
-
-    @Column(length = 100)
-    private String lastname;
-
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 

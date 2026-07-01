@@ -4,17 +4,14 @@ server:
 spring:
   application:
     name: AUTH-SERVICE
-
   cloud:
     discovery:
       enabled: true
-
   datasource:
     url: "jdbc:postgresql://postgres-auth:5432/authdb"
     username: "auth_user"
     password: "auth_password"
     driver-class-name: "org.postgresql.Driver"
-
   jpa:
     hibernate:
       ddl-auto: update
@@ -30,7 +27,6 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: http://eureka-server:8761/eureka/
-
   instance:
     prefer-ip-address: true
 
@@ -39,3 +35,6 @@ jwt:
   access-token-expiration: 300000
   refresh-token-expiration: 604800000
 
+services:
+  utilisateurs:
+    url: http://service-utilisateurs:8082
