@@ -6,9 +6,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "service-reservation")
 public interface ReservationClient {
-    @GetMapping("/reservations/verification")
+    @GetMapping("api/reservations/exists")
     boolean existeInteraction(
         @RequestParam Long utilisateurId,
         @RequestParam Long agentId
     );
-} 
+}

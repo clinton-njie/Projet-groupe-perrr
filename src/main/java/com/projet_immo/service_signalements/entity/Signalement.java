@@ -14,6 +14,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -22,8 +24,6 @@ public class Signalement {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false)
-    private String titre;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
@@ -43,21 +43,37 @@ public class Signalement {
     @Column(nullable = false)
     private Long utilisateurId;
     private Long agentId;
+    
+    @Column(nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "objet_signalement_id")
+    private ObjetSignalement objetSignalement;
 
     public Signalement() {
     };
 
-    public Signalement(Long id, String titre, SignalementType type, String description, LocalDate dateSignalement,
-            SignalementStatut statut, Long utilisateurId, Long agentId) {
+
+    public Signalement(Long id, SignalementType type, String description, LocalDate dateSignalement,
+            SignalementStatut statut, Long utilisateurId, Long agentId, ObjetSignalement objetSignalement) {
         this.id = id;
-        this.titre = titre;
         this.type = type;
         this.description = description;
         this.dateSignalement = dateSignalement;
         this.statut = statut;
         this.utilisateurId = utilisateurId;
         this.agentId = agentId;
+        this.objetSignalement = objetSignalement;
     }
+
+    public ObjetSignalement getObjetSignalement() {
+        return objetSignalement;
+    }
+
+
+    public void setObjetSignalement(ObjetSignalement objetSignalement) {
+        this.objetSignalement = objetSignalement;
+    }
+
 
     public Long getId() {
         return id;
@@ -65,14 +81,6 @@ public class Signalement {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public String getTitre() {
-        return titre;
-    }
-
-    public void setTitre(String titre) {
-        this.titre = titre;
     }
 
     public SignalementType getType() {

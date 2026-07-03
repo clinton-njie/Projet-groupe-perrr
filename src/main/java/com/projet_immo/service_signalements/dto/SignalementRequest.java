@@ -12,22 +12,19 @@ import jakarta.validation.constraints.Size;
 public class SignalementRequest {
     @NotBlank(message = "Le titre est obligatoire.")
     @Size(max = 100, message = "Le titre ne doit pas dépasser 100 caractères.")
-    private String titre;
+    private Long objetSignalement;
     @NotNull(message = "Le type de signalement est obligatoire.")
     private SignalementType type;
     @NotBlank(message = "La description est obligatoire.")
     private String description;
-    private LocalDate dateSignalement;
-    private SignalementStatut statut;
     private Long utilisateurId;
     private Long agentId;
     
-    public String getTitre() {
-        return titre;
+    public Long getObjetSignalement() {
+        return objetSignalement;
     }
-    
-    public void setTitre(String titre) {
-        this.titre = titre;
+    public void setObjetSignalement(Long objetSignalement) {
+        this.objetSignalement = objetSignalement;
     }
     public SignalementType getType() {
         return type;
@@ -40,18 +37,6 @@ public class SignalementRequest {
     }
     public void setDescription(String description) {
         this.description = description;
-    }
-    public LocalDate getDateSignalement() {
-        return dateSignalement;
-    }
-    public void setDateSignalement(LocalDate dateSignalement) {
-        this.dateSignalement = dateSignalement;
-    }
-    public SignalementStatut getStatut() {
-        return statut;
-    }
-    public void setStatut(SignalementStatut statut) {
-        this.statut = statut;
     }
     public Long getUtilisateurId() {
         return utilisateurId;

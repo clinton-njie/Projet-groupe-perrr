@@ -28,20 +28,29 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
 
-                        // ADMIN uniquement
-                        .requestMatchers(HttpMethod.GET, "/signalements").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/signalements/*/statut").hasAuthority("ROLE_ADMIN")
+        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
 
-                        // USER et AGENT uniquement
-                        .requestMatchers(HttpMethod.POST, "/signalements").hasAnyAuthority("ROLE_CLIENT", "ROLE_AGENT")
+        // ADMIN uniquement (Consultation et mise a jour d'un signalement)
+        .requestMatchers(HttpMethod.GET, "/api/signalements").hasAuthority("ROLE_ADMIN")
+        .requestMatchers(HttpMethod.PUT, "/api/signalements/*/statut").hasAuthority("ROLE_ADMIN")
+        .requestMatchers(HttpMethod.GET, "/api/signalements/*").hasAnyAuthority("ROLE_ADMIN")
 
-                        // USER, AGENT et ADMIN
-                        .requestMatchers(HttpMethod.GET, "/signalements/*")
-                        .hasAnyAuthority("ROLE_CLIENT", "ROLE_AGENT", "ROLE_ADMIN")
+        // USER et AGENT uniquement (Ajout d'un signalement)
+        .requestMatchers(HttpMethod.POST, "/api/signalements/agent").hasAnyAuthority("ROLE_CLIENT", "ROLE_AGENT")
+        .requestMatchers(HttpMethod.POST, "/api/signalements/technique").hasAnyAuthority("ROLE_CLIENT", "ROLE_AGENT")
 
-                        .anyRequest().authenticated())
+        // 🔐 OBJET SIGNALEMENT - CRUD ADMIN ONLY
+        .requestMatchers(HttpMethod.POST, "/api/objets-signalement").hasAuthority("ROLE_ADMIN")
+        .requestMatchers(HttpMethod.PUT, "/api/objets-signalement/*").hasAuthority("ROLE_ADMIN")
+        .requestMatchers(HttpMethod.DELETE, "/api/objets-signalement/*").hasAuthority("ROLE_ADMIN")
+
+        // consultation des objets (USER + AGENT + ADMIN)
+        .requestMatchers(HttpMethod.GET, "/api/objets-signalement").hasAnyAuthority("ROLE_ADMIN", "ROLE_AGENT", "ROLE_CLIENT")
+        .requestMatchers(HttpMethod.GET, "/api/objets-signalement/*").hasAnyAuthority("ROLE_ADMIN", "ROLE_AGENT", "ROLE_CLIENT")
+
+        .anyRequest().authenticated()
+)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

@@ -10,15 +10,19 @@ import org.springframework.stereotype.Service;
 import com.projet_immo.service_signalements.dto.GetSignalementResponse;
 import com.projet_immo.service_signalements.dto.SignalementRequest;
 import com.projet_immo.service_signalements.dto.SignalementResponse;
+import com.projet_immo.service_signalements.entity.ObjetSignalement;
 import com.projet_immo.service_signalements.entity.Signalement;
 import com.projet_immo.service_signalements.enums.SignalementStatut;
-import com.projet_immo.service_signalements.enums.SignalementType;
-import com.projet_immo.service_signalements.exception.AgentCannotReportAgentException;
+import com.projet_immo.service_signalements.exception.AgentNotSelectedException;
 import com.projet_immo.service_signalements.exception.DailyLimitExceededException;
 import com.projet_immo.service_signalements.exception.NoInteractionException;
+import com.projet_immo.service_signalements.exception.ObjetSignalementNotFoundException;
+import com.projet_immo.service_signalements.exception.SignalementAlreadyProcessedException;
+import com.projet_immo.service_signalements.exception.SignalementNotFoundException;
 import com.projet_immo.service_signalements.feignclient.ReservationClient;
 import com.projet_immo.service_signalements.feignclient.UtilisateurClient;
 import com.projet_immo.service_signalements.feignclient.VisiteClient;
+import com.projet_immo.service_signalements.repository.ObjetSignalementRepository;
 import com.projet_immo.service_signalements.repository.SignalementRepository;
 
 @Service
@@ -31,30 +35,30 @@ public class SignalementService {
     private ReservationClient reservationClient;
     @Autowired
     private UtilisateurClient utilisateurClient;
+    @Autowired
+    private ObjetSignalementRepository objetSignalementRepository;
 
-    public SignalementResponse addSignalement(SignalementRequest request, Long id, String role) {
+    public SignalementResponse addSignalementAgent(SignalementRequest request, Long id) {
         Long agentId = request.getAgentId();
         Long nbSignalement = signalementRepository.countByUtilisateurIdAndDateSignalement(id, LocalDate.now());
         Signalement signalement = new Signalement();
         if (nbSignalement >= 3) {
             throw new DailyLimitExceededException();
         }
-        if (request.getType().equals(SignalementType.AGENT)) {
-            if (role.contains("ROLE_AGENT")) {
-                throw new AgentCannotReportAgentException();
-            } else {
-                if (request.getAgentId() == null) {
-                    throw new RuntimeException("Aucun agent selectionne");
-                } else {
-                    if (!visiteClient.existeInteraction(id, agentId)
-                            && !reservationClient.existeInteraction(id, agentId)) {
-                        throw new NoInteractionException();
-                    }
-                }
-                signalement.setAgentId(agentId);
+        if (request.getAgentId() == null) {
+            throw new AgentNotSelectedException();
+        } else {
+            if (!visiteClient.existeInteraction(id, agentId)
+                    && !reservationClient.existeInteraction(id, agentId)) {
+                throw new NoInteractionException();
             }
+            signalement.setAgentId(agentId);
         }
-        signalement.setTitre(request.getTitre());
+
+        ObjetSignalement objet = objetSignalementRepository.findById(request.getObjetSignalement())
+                .orElseThrow(() -> new ObjetSignalementNotFoundException(request.getObjetSignalement()));
+
+        signalement.setObjetSignalement(objet);
         signalement.setType(request.getType());
         signalement.setDescription(request.getDescription());
         signalement.setUtilisateurId(id);
@@ -71,9 +75,33 @@ public class SignalementService {
         return new SignalementResponse(utilisateurEmail, agentEmail, "Signalement envoye");
     }
 
+    public SignalementResponse addSignalementTechnique(SignalementRequest request, Long id) {
+        Long nbSignalement = signalementRepository.countByUtilisateurIdAndDateSignalement(id, LocalDate.now());
+        Signalement signalement = new Signalement();
+        if (nbSignalement >= 3) {
+            throw new DailyLimitExceededException();
+        }
+        ObjetSignalement objet = objetSignalementRepository.findById(request.getObjetSignalement())
+                .orElseThrow(() -> new ObjetSignalementNotFoundException(request.getObjetSignalement()));
+
+        signalement.setObjetSignalement(objet);
+        signalement.setType(request.getType());
+        signalement.setDescription(request.getDescription());
+        signalement.setUtilisateurId(id);
+        signalement.setStatut(SignalementStatut.EN_ATTENTE);
+
+        signalementRepository.save(signalement);
+
+        String agentEmail = null;
+
+        String utilisateurEmail = utilisateurClient.getEmailById(id);
+
+        return new SignalementResponse(utilisateurEmail, agentEmail, "Signalement envoye");
+    }
+
     public GetSignalementResponse getSignalement(Long signalementId) {
         Signalement signalement = signalementRepository.findById(signalementId)
-                .orElseThrow(() -> new RuntimeException("Signalement introuvable"));
+                .orElseThrow(() -> new SignalementNotFoundException(signalementId));
 
         String utilisateurEmail = utilisateurClient.getEmailById(signalement.getUtilisateurId());
 
@@ -84,7 +112,7 @@ public class SignalementService {
 
         return new GetSignalementResponse(
                 signalement.getId(),
-                signalement.getTitre(),
+                signalement.getObjetSignalement().getLibelle(),
                 signalement.getType(),
                 signalement.getDescription(),
                 signalement.getDateSignalement(),
@@ -106,7 +134,7 @@ public class SignalementService {
 
                     return new GetSignalementResponse(
                             signalement.getId(),
-                            signalement.getTitre(),
+                            signalement.getObjetSignalement().getLibelle(),
                             signalement.getType(),
                             signalement.getDescription(),
                             signalement.getDateSignalement(),
@@ -118,32 +146,31 @@ public class SignalementService {
     }
 
     public GetSignalementResponse updateStatut(Long signalementId, SignalementStatut nouveauStatut) {
-    Signalement signalement = signalementRepository.findById(signalementId)
-        .orElseThrow(() -> new RuntimeException("Signalement introuvable"));
+        Signalement signalement = signalementRepository.findById(signalementId)
+                .orElseThrow(() -> new SignalementNotFoundException(signalementId));
 
-    if (signalement.getStatut().equals(SignalementStatut.RESOLU)
-            || signalement.getStatut().equals(SignalementStatut.REJETE)) {
-        throw new RuntimeException("Ce signalement est déjà traité");
+        if (signalement.getStatut().equals(SignalementStatut.TRAITE)
+                || signalement.getStatut().equals(SignalementStatut.REJETE)) {
+            throw new SignalementAlreadyProcessedException();
+        }
+
+        signalement.setStatut(nouveauStatut);
+        signalementRepository.save(signalement);
+
+        String utilisateurEmail = utilisateurClient.getEmailById(signalement.getUtilisateurId());
+        String agentEmail = null;
+        if (signalement.getAgentId() != null) {
+            agentEmail = utilisateurClient.getEmailById(signalement.getAgentId());
+        }
+
+        return new GetSignalementResponse(
+                signalement.getId(),
+                signalement.getObjetSignalement().getLibelle(),
+                signalement.getType(),
+                signalement.getDescription(),
+                signalement.getDateSignalement(),
+                signalement.getStatut(),
+                utilisateurEmail,
+                agentEmail);
     }
-
-    signalement.setStatut(nouveauStatut);
-    signalementRepository.save(signalement);
-
-    String utilisateurEmail = utilisateurClient.getEmailById(signalement.getUtilisateurId());
-    String agentEmail = null;
-    if (signalement.getAgentId() != null) {
-        agentEmail = utilisateurClient.getEmailById(signalement.getAgentId());
-    }
-
-    return new GetSignalementResponse(
-        signalement.getId(),
-        signalement.getTitre(),
-        signalement.getType(),
-        signalement.getDescription(),
-        signalement.getDateSignalement(),
-        signalement.getStatut(),
-        utilisateurEmail,
-        agentEmail
-    );
-}
 }

@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "service-visite")
 public interface VisiteClient {
-    @GetMapping("/visites/verification")
+    @GetMapping("api/visites/exists")
     boolean existeInteraction(
         @RequestParam Long utilisateurId,
         @RequestParam Long agentId

@@ -25,23 +25,37 @@ import com.projet_immo.service_signalements.service.SignalementService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/signalements")
+@RequestMapping("/api/signalements")
 public class SignalementController {
 
     @Autowired
     private SignalementService signalementService;
 
-    @PostMapping
-    public ResponseEntity<SignalementResponse> addSignalement(
+    @PostMapping("/agent")
+    public ResponseEntity<SignalementResponse> addSignalementAgent(
+            @Valid @RequestBody SignalementRequest request,
+            @RequestHeader("X-User-Id") Long userId) {
+
+        // // Récupérer le rôle depuis le token via Spring Security
+        // Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        // String role = auth.getAuthorities().iterator().next().getAuthority();
+        // ex: "ROLE_AGENT", "ROLE_ADMIN", "ROLE_USER"
+
+        SignalementResponse response = signalementService.addSignalementAgent(request, userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/technique")
+    public ResponseEntity<SignalementResponse> addSignalementTtechnique(
             @Valid @RequestBody SignalementRequest request,
             @RequestHeader("X-User-Id") Long userId) {
 
         // Récupérer le rôle depuis le token via Spring Security
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String role = auth.getAuthorities().iterator().next().getAuthority();
+        // Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        // String role = auth.getAuthorities().iterator().next().getAuthority();
         // ex: "ROLE_AGENT", "ROLE_ADMIN", "ROLE_USER"
 
-        SignalementResponse response = signalementService.addSignalement(request, userId, role);
+        SignalementResponse response = signalementService.addSignalementTechnique(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
