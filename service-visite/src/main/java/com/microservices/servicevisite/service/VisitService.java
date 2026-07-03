@@ -4,15 +4,18 @@ import com.microservices.servicevisite.dto.*;
 import com.microservices.servicevisite.entity.*;
 import com.microservices.servicevisite.enums.*;
 import com.microservices.servicevisite.feign.*;
+import com.microservices.servicevisite.kafka.TransactionEventProducer;
 import com.microservices.servicevisite.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -22,15 +25,24 @@ private final VisitRepository visitRepository;
 private final AgentAvailabilityRepository availabilityRepository;
 private final BienServiceClient bienServiceClient;
 private final PaymentServiceClient paymentServiceClient;
+private final TransactionEventProducer transactionEventProducer;
+
+private static final Map<DayOfWeek, JourSemaine> JOURS_SEMAINE = Map.of(
+DayOfWeek.MONDAY, JourSemaine.LUNDI,
+DayOfWeek.TUESDAY, JourSemaine.MARDI,
+DayOfWeek.WEDNESDAY, JourSemaine.MERCREDI,
+DayOfWeek.THURSDAY, JourSemaine.JEUDI,
+DayOfWeek.FRIDAY, JourSemaine.VENDREDI,
+DayOfWeek.SATURDAY, JourSemaine.SAMEDI,
+DayOfWeek.SUNDAY, JourSemaine.DIMANCHE
+);
 
 // Récupérer les créneaux disponibles
 public List<SlotResponse> getAvailableSlots(Long bienId, LocalDate date) {
 BienResponse bien = bienServiceClient.getBienById(bienId);
 String agentEmail = bien.getAgentEmail();
 
-JourSemaine jour = JourSemaine.valueOf(
-date.getDayOfWeek().name()
-);
+JourSemaine jour = JOURS_SEMAINE.get(date.getDayOfWeek());
 
 List<AgentAvailability> disponibilites =
 availabilityRepository.findByAgentEmailAndJourSemaineAndType(
@@ -65,7 +77,10 @@ return slots;
 }
 
 // Créer une visite
-@Transactional
+// Pas de @Transactional ici : le paiement est initié en synchrone juste après l'enregistrement,
+// et payment-service rappelle confirmation-paiement dans la foulée. Si cette méthode était
+// transactionnelle, la visite ne serait pas encore committée quand ce rappel arrive
+// (findById échouerait avec "Visite non trouvée").
 public VisitResponse creerVisite(VisitRequest request) {
 BienResponse bien = bienServiceClient.getBienById(request.getBienId());
 
@@ -113,11 +128,23 @@ Visit visit = visitRepository.findById(id)
 
 if ("ACCEPTER".equals(request.getDecision())) {
 visit.setStatut(VisitStatut.CONFIRMEE);
+visit = visitRepository.save(visit);
+
+transactionEventProducer.publierTransactionTerminee(
+TransactionTermineeEvent.builder()
+.transactionId(visit.getId())
+.clientId(visit.getClientEmail())
+.agentId(visit.getAgentEmail())
+.bienId(visit.getBienId())
+.typeTransaction("VISITE")
+.build()
+);
+
+return mapToResponse(visit);
 } else {
 visit.setStatut(VisitStatut.REFUSEE);
-}
-
 return mapToResponse(visitRepository.save(visit));
+}
 }
 
 // Mapper entité → DTO

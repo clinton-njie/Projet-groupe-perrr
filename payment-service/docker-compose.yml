@@ -1,0 +1,40 @@
+services:
+
+  postgres-paiement:
+    image: postgres:15
+    container_name: postgres-paiement
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: payment_password
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres_paiement_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
+
+  payment-service:
+    build: .
+    container_name: payment-service
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    depends_on:
+      - postgres-paiement
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-paiement:5432/payment_db
+      SPRING_DATASOURCE_USERNAME: payment_user
+      SPRING_DATASOURCE_PASSWORD: payment_password
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - projet-immo-network
+
+networks:
+  projet-immo-network:
+    external: true
+    name: projet-groupe-perrr_projet-immo-network
+
+volumes:
+  postgres_paiement_data:
