@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: ms-avis
+  profiles:
+    active: local
+
+jwt:
+  secret: 9a4f434556515d736178274a4dd4e635252d624757662c6563242f362e2a4a51 # Clé de test de 256-bit minimale
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:postgresql://localhost:5432/db_ms_avis
+    username: user_immo
+    password: password_immo
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8089
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8721/eureka/
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://postgres-db:5432/db_ms_avis
+    username: user_immo
+    password: password_immo
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+server:
+  port: 8085
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8721/eureka/
