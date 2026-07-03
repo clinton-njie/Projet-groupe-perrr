@@ -15,9 +15,9 @@ services:
     networks:
       - projet-immo-network
 
-  payment-service:
+  service-paiement:
     build: .
-    container_name: payment-service
+    container_name: service-paiement
     restart: unless-stopped
     ports:
       - "8088:8088"

@@ -9,7 +9,7 @@
 		<relativePath/>
 	</parent>
 	<groupId>com.microservices</groupId>
-	<artifactId>payment-service</artifactId>
+	<artifactId>service-paiement</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
 	<properties>

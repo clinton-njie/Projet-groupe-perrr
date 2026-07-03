@@ -78,7 +78,7 @@ return slots;
 
 // Créer une visite
 // Pas de @Transactional ici : le paiement est initié en synchrone juste après l'enregistrement,
-// et payment-service rappelle confirmation-paiement dans la foulée. Si cette méthode était
+// et service-paiement rappelle confirmation-paiement dans la foulée. Si cette méthode était
 // transactionnelle, la visite ne serait pas encore committée quand ce rappel arrive
 // (findById échouerait avec "Visite non trouvée").
 public VisitResponse creerVisite(VisitRequest request) {
