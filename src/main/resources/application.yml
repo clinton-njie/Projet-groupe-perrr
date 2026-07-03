@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: AUTH-SERVICE
+    name: service-auth
   cloud:
     discovery:
       enabled: true
