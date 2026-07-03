@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: service-admin
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5439/admin_db}
+    username: ${SPRING_DATASOURCE_USERNAME:admin_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:admin_password}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: 8083
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+app:
+  invite-link-base-url: ${INVITE_LINK_BASE_URL:http://localhost:3000/creer-compte-admin}
+
+jwt:
+  secret: "ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue"

@@ -1,9 +1,7 @@
 package com.Projet_immo.service_user.service;
 
 import com.Projet_immo.service_user.dto.*;
-import com.Projet_immo.service_user.entity.RoleChangeRequest;
 import com.Projet_immo.service_user.entity.UserProfile;
-import com.Projet_immo.service_user.repository.RoleChangeRequestRepository;
 import com.Projet_immo.service_user.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,11 +18,10 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserProfileRepository userProfileRepository;
-    private final RoleChangeRequestRepository roleChangeRequestRepository;
     private final RestTemplate restTemplate;
 
-    @Value("${services.auth-service-url}")
-    private String authServiceUrl;
+    @Value("${services.admin-service-url}")
+    private String adminServiceUrl;
 
     // Créer profil après inscription (appelé par auth-service)
     public UserProfileResponse initProfile(UserInitRequest request) {
@@ -113,7 +110,7 @@ public class UserService {
         return "Suppression définitive dans " + joursRestants + " jour(s).";
     }
 
-    // Désactiver un compte (par admin)
+    // Désactiver un compte (appelé par service-admin)
     public String deactivateProfile(Long authUserId) {
         UserProfile profile = userProfileRepository.findByAuthUserId(authUserId)
                 .orElseThrow(() -> new RuntimeException("Profil introuvable"));
@@ -122,7 +119,16 @@ public class UserService {
         return "Compte désactivé avec succès.";
     }
 
-    // Lister tous les profils (admin)
+    // Réactiver un compte (appelé par service-admin)
+    public String reactivateProfile(Long authUserId) {
+        UserProfile profile = userProfileRepository.findByAuthUserId(authUserId)
+                .orElseThrow(() -> new RuntimeException("Profil introuvable"));
+        profile.setIsActive(true);
+        userProfileRepository.save(profile);
+        return "Compte réactivé avec succès.";
+    }
+
+    // Lister tous les profils (appelé par service-admin)
     public List<UserProfileResponse> getAllProfiles() {
         return userProfileRepository.findAll()
                 .stream()
@@ -130,49 +136,22 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    // Demander changement de rôle
+    // Demander changement de rôle : la demande elle-même est gérée par service-admin,
+    // qui applique la limite de 3 demandes et le traitement admin.
     public String requestRoleChange(Long authUserId, RoleChangeRequestDto request) {
-        UserProfile profile = userProfileRepository.findByAuthUserId(authUserId)
+        userProfileRepository.findByAuthUserId(authUserId)
                 .orElseThrow(() -> new RuntimeException("Profil introuvable"));
-        RoleChangeRequest roleRequest = RoleChangeRequest.builder()
+
+        CreateRoleRequestPayload payload = CreateRoleRequestPayload.builder()
                 .authUserId(authUserId)
                 .currentRole("ROLE_CLIENT")
                 .requestedRole(request.getRequestedRole())
                 .justification(request.getJustification())
                 .build();
-        roleChangeRequestRepository.save(roleRequest);
+
+        restTemplate.postForObject(adminServiceUrl + "/internal/role-requests", payload, Object.class);
+
         return "Demande de changement de rôle envoyée avec succès.";
-    }
-
-    // Lister toutes les demandes (admin)
-    public List<RoleChangeRequest> getAllRoleRequests() {
-        return roleChangeRequestRepository.findAll();
-    }
-
-    // Traiter une demande (admin)
-    public String processRoleRequest(Long requestId, ProcessRoleRequestDto request) {
-        RoleChangeRequest roleRequest = roleChangeRequestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Demande introuvable"));
-
-        if ("APPROUVÉ".equals(request.getDecision())) {
-            roleRequest.setStatus("APPROUVÉ");
-            roleRequest.setProcessedAt(Instant.now());
-
-            // Appel à l'auth-service pour appliquer le nouveau rôle
-            RoleUpdateRequest roleUpdateRequest = RoleUpdateRequest.builder()
-                    .newRole(roleRequest.getRequestedRole())
-                    .build();
-
-            String url = authServiceUrl + "/api/auth/users/" + roleRequest.getAuthUserId() + "/role";
-            restTemplate.put(url, roleUpdateRequest);
-
-        } else {
-            roleRequest.setStatus("REFUSÉ");
-            roleRequest.setRefusalReason(request.getRefusalReason());
-            roleRequest.setProcessedAt(Instant.now());
-        }
-        roleChangeRequestRepository.save(roleRequest);
-        return "Demande traitée avec succès.";
     }
 
     // Suppression automatique après 30 jours

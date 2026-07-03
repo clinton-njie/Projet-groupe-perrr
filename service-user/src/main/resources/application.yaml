@@ -28,6 +28,7 @@ jwt:
   secret: "ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue"
 services:
   auth-service-url: http://auth-service:8081
+  admin-service-url: http://service-admin:8083
 management:
   endpoints:
     web:

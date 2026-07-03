@@ -4,7 +4,9 @@ import com.microservices.auth.dto.AuthResponse;
 import com.microservices.auth.dto.LoginRequest;
 import com.microservices.auth.dto.MessageResponse;
 import com.microservices.auth.dto.RefreshTokenRequest;
+import com.microservices.auth.dto.RegisterAdminRequest;
 import com.microservices.auth.dto.RegisterRequest;
+import com.microservices.auth.dto.RoleUpdateRequest;
 import com.microservices.auth.entity.RefreshToken;
 import com.microservices.auth.entity.Role;
 import com.microservices.auth.entity.User;
@@ -124,6 +126,66 @@ public class AuthService {
 
         return MessageResponse.builder()
                 .message("Déconnexion réussie")
+                .build();
+    }
+
+    @Transactional
+    public MessageResponse updateRole(Long userId, RoleUpdateRequest request) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Utilisateur introuvable"));
+
+        RoleName roleName = RoleName.valueOf(request.getNewRole());
+
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Le rôle " + roleName + " est introuvable en base de données"
+                ));
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(role);
+        user.setRoles(roles);
+
+        userRepository.save(user);
+
+        return MessageResponse.builder()
+                .message("Rôle mis à jour avec succès")
+                .build();
+    }
+
+    // Appelé par service-admin lors de l'acceptation d'une invitation admin.
+    @Transactional
+    public MessageResponse registerAdmin(RegisterAdminRequest request) {
+
+        String email = request.getEmail().toLowerCase().trim();
+
+        if (userRepository.existsByEmail(email)) {
+            throw new IllegalStateException("Cet email est déjà utilisé");
+        }
+
+        RoleName roleName = RoleName.valueOf(request.getRole());
+
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Le rôle " + roleName + " est introuvable en base de données"
+                ));
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(role);
+
+        User user = User.builder()
+                .firstname(request.getFirstname())
+                .lastname(request.getLastname())
+                .email(email)
+                .password(passwordEncoder.encode(request.getPassword()))
+                .enabled(true)
+                .roles(roles)
+                .build();
+
+        userRepository.save(user);
+
+        return MessageResponse.builder()
+                .message("Compte administrateur créé avec succès")
                 .build();
     }
 }

@@ -1,7 +1,6 @@
 package com.Projet_immo.service_user.controller;
 
 import com.Projet_immo.service_user.dto.*;
-import com.Projet_immo.service_user.entity.RoleChangeRequest;
 import com.Projet_immo.service_user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -63,42 +62,11 @@ public class UserController {
         return ResponseEntity.ok(userService.getDeletionStatus(authUserId));
     }
 
-    // Désactiver un compte (admin)
-    // ⚠️ TODO: À MIGRER vers service-admin une fois ce service créé.
-    // Les 4 endpoints suivants (deactivate, getAllProfiles, getAllRoleRequests, processRoleRequest)
-    // appartiennent fonctionnellement à l'admin et seront déplacés vers service-admin.
-    // processRoleRequest contient l'appel à l'auth-service pour appliquer le changement de rôle —
-    // à transférer tel quel.
-    @PutMapping("/{authUserId}/desactivate")
-    public ResponseEntity<String> deactivateProfile(@PathVariable Long authUserId) {
-        return ResponseEntity.ok(userService.deactivateProfile(authUserId));
-    }
-
-    // Lister tous les profils (admin)
-    @GetMapping
-    public ResponseEntity<List<UserProfileResponse>> getAllProfiles() {
-        return ResponseEntity.ok(userService.getAllProfiles());
-    }
-
-    // Demander changement de rôle
+    // Demander changement de rôle (la gestion de la demande vit dans service-admin)
     @PostMapping("/{authUserId}/request-role-change")
     public ResponseEntity<String> requestRoleChange(
             @PathVariable Long authUserId,
             @Valid @RequestBody RoleChangeRequestDto request) {
         return ResponseEntity.ok(userService.requestRoleChange(authUserId, request));
-    }
-
-    // Lister toutes les demandes (admin)
-    @GetMapping("/role-requests")
-    public ResponseEntity<List<RoleChangeRequest>> getAllRoleRequests() {
-        return ResponseEntity.ok(userService.getAllRoleRequests());
-    }
-
-    // Traiter une demande (admin)
-    @PutMapping("/role-requests/{requestId}/process")
-    public ResponseEntity<String> processRoleRequest(
-            @PathVariable Long requestId,
-            @Valid @RequestBody ProcessRoleRequestDto request) {
-        return ResponseEntity.ok(userService.processRoleRequest(requestId, request));
     }
 }

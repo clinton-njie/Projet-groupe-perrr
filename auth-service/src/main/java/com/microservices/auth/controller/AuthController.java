@@ -5,7 +5,9 @@ import com.microservices.auth.dto.CurrentUserResponse;
 import com.microservices.auth.dto.LoginRequest;
 import com.microservices.auth.dto.MessageResponse;
 import com.microservices.auth.dto.RefreshTokenRequest;
+import com.microservices.auth.dto.RegisterAdminRequest;
 import com.microservices.auth.dto.RegisterRequest;
+import com.microservices.auth.dto.RoleUpdateRequest;
 import com.microservices.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -69,5 +71,21 @@ public class AuthController {
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    // Appelé par service-admin quand une demande de changement de rôle est approuvée
+    @PutMapping("/users/{id}/role")
+    public ResponseEntity<MessageResponse> updateRole(
+            @PathVariable Long id,
+            @RequestBody RoleUpdateRequest request) {
+
+        return ResponseEntity.ok(authService.updateRole(id, request));
+    }
+
+    // Appelé par service-admin quand une invitation admin est acceptée
+    @PostMapping("/admin/register")
+    public ResponseEntity<MessageResponse> registerAdmin(@Valid @RequestBody RegisterAdminRequest request) {
+
+        return ResponseEntity.ok(authService.registerAdmin(request));
     }
 }

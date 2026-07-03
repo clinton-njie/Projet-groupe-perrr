@@ -27,9 +27,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/by-email/**").permitAll()
                 .requestMatchers("/api/users/*/email").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/api/users/role-requests/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/api/users/*/deactivate").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/api/users").hasAuthority("ROLE_ADMIN")
+                // Appelés uniquement par service-admin (voir InternalUserController)
+                .requestMatchers("/internal/users/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPER_ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter,

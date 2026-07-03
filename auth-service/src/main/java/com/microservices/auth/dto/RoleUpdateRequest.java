@@ -1,4 +1,4 @@
-package com.Projet_immo.service_user.dto;
+package com.microservices.auth.dto;
 
 import lombok.*;
 

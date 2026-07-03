@@ -36,6 +36,6 @@ eureka:
 
 jwt:
   secret: "ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue"
-  access-token-expiration: 300000
+  access-token-expiration: 900000
   refresh-token-expiration: 604800000
 

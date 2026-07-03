@@ -1,0 +1,40 @@
+services:
+
+  postgres-admin:
+    image: postgres:15
+    container_name: postgres-admin
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: admin_db
+      POSTGRES_USER: admin_user
+      POSTGRES_PASSWORD: admin_password
+    ports:
+      - "5439:5432"
+    volumes:
+      - postgres_admin_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
+
+  service-admin:
+    build: .
+    container_name: service-admin
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    depends_on:
+      - postgres-admin
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-admin:5432/admin_db
+      SPRING_DATASOURCE_USERNAME: admin_user
+      SPRING_DATASOURCE_PASSWORD: admin_password
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - projet-immo-network
+
+networks:
+  projet-immo-network:
+    external: true
+    name: projet-groupe-perrr_projet-immo-network
+
+volumes:
+  postgres_admin_data:

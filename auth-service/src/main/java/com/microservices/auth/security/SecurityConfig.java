@@ -45,7 +45,9 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/refresh-token",
-                                "/api/auth/logout"
+                                "/api/auth/logout",
+                                "/api/auth/users/*/role",
+                                "/api/auth/admin/register"
                         ).permitAll()
 
                         .requestMatchers("/h2-console/**").permitAll()
