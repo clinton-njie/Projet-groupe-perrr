@@ -76,7 +76,7 @@ public class Utilisateur {
         this.dateModification = LocalDateTime.now();
     }
 
-    public void setRole(UserStatus status) {
+    public void setStatus(UserStatus status) {
         this.status = status;
     }
 
