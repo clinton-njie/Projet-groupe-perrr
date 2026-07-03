@@ -87,9 +87,8 @@ services:
       - projet-immo-network
 
   postgres-abonnement:
-    image: postgres:18
+    image: postgres:15
     container_name: abonnement-db
-
     environment:
       POSTGRES_DB: abonnement_db
       POSTGRES_USER: postgres
@@ -98,40 +97,45 @@ services:
       - "5436:5432"
     volumes:
       - abonnement_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
 
   abonnement-service:
-    build: .
+    build: ./abonnement-service
     container_name: abonnement-service
     depends_on:
       - postgres-abonnement
     ports:
       - "8087:8087"
-
-  volumes:
-    abonnement_data:
+    networks:
+      - projet-immo-network
 
   postgres-reservation:
-    image: postgres:18
+    image: postgres:15
     container_name: reservation-db
-
     environment:
       POSTGRES_DB: reservation_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
-      - "5436:5432"
+      - "5437:5432"
     volumes:
       - reservation_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
 
   reservation-service:
-    build: .
+    image: reservation-service-reservation-service:latest
     container_name: reservation-service
     depends_on:
       - postgres-reservation
     ports:
       - "8088:8088"
+    networks:
+      - projet-immo-network
 
 volumes:
+  abonnement_data:
   reservation_data:
 
 networks:
