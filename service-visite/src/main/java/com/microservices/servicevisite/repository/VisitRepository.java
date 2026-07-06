@@ -20,4 +20,20 @@ List<Visit> findByStatutAndCreatedAtBefore(
 VisitStatut statut,
 LocalDateTime dateTime
 );
+
+List<Visit> findByStatutInAndDateHeureDebutBeforeAndAnnulationVerrouilleeFalse(
+List<VisitStatut> statuts,
+LocalDateTime dateHeureDebutLimite
+);
+
+List<Visit> findByClientEmail(String clientEmail);
+
+List<Visit> findByAgentEmail(String agentEmail);
+
+// Interaction éligible à un signalement d'agent : visite effective client<->agent.
+boolean existsByClientEmailAndAgentEmailAndStatutIn(
+String clientEmail,
+String agentEmail,
+List<VisitStatut> statuts
+);
 }

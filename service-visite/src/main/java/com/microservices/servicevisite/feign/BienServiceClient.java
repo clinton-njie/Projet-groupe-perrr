@@ -9,5 +9,7 @@ public interface BienServiceClient {
 
 @GetMapping("/api/biens/{id}")
 BienResponse getBienById(@PathVariable("id") Long id);
-}
 
+@GetMapping("/api/biens/categorie/{categorie}/prix-visite")
+PrixVisiteResponse getPrixVisite(@PathVariable("categorie") String categorie);
+}

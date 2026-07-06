@@ -22,4 +22,8 @@ public class ReservationResponse {
     private Double amount;
 
     private String status;
+
+    private String nomBien;
+
+    private String nomUtilisateur;
 }

@@ -1,5 +1,7 @@
 package com.immobilier.reservationservice.dto;
 
+import com.immobilier.reservationservice.enums.OperateurMobileMoney;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,4 +20,10 @@ public class ReservationRequest {
 
     @NotNull
     private LocalDate endDate;
+
+    @NotNull(message = "L'opérateur mobile money est obligatoire")
+    private OperateurMobileMoney operateur;
+
+    @NotBlank(message = "Le numéro de téléphone est obligatoire")
+    private String telephone;
 }

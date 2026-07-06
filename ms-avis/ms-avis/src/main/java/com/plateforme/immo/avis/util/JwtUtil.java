@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.util.Collections;
+import java.util.List;
 
 @Component
 public class JwtUtil {
@@ -27,12 +29,23 @@ public class JwtUtil {
                 .getBody();
     }
 
-    public Long extractUserId(String token) {
-        String subject = extractAllClaims(token).getSubject();
-        return Long.parseLong(subject);
+    // Le subject du token émis par auth-service est l'email de l'utilisateur,
+    // pas un ID numérique. L'ID interne est résolu via user-service (by-email).
+    public String extractEmail(String token) {
+        return extractAllClaims(token).getSubject();
     }
 
-    public String extractRole(String token) {
-        return extractAllClaims(token).get("role", String.class);
+    // auth-service place les rôles dans un claim "roles" (liste), ex. ["ROLE_CLIENT"].
+    @SuppressWarnings("unchecked")
+    public List<String> extractRoles(String token) {
+        Object roles = extractAllClaims(token).get("roles");
+        if (roles instanceof List<?> list) {
+            return list.stream().map(String::valueOf).toList();
+        }
+        return Collections.emptyList();
+    }
+
+    public boolean hasRole(String token, String role) {
+        return extractRoles(token).contains(role);
     }
 }

@@ -3,9 +3,27 @@ spring:
     name: ms-avis
   profiles:
     active: local
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ms-avis
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.plateforme.immo.avis.dto.TransactionInterneDTO
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
 
 jwt:
-  secret: 9a4f434556515d736178274a4dd4e635252d624757662c6563242f362e2a4a51 # Clé de test de 256-bit minimale
+  # Secret partagé par toute la plateforme (auth-service émet, les services vérifient).
+  # Doit rester identique à auth/reservation/visite sinon la vérification de signature échoue.
+  secret: ${JWT_SECRET:ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue}
 
 ---
 spring:
@@ -30,7 +48,7 @@ server:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8721/eureka/
+      defaultZone: http://localhost:8761/eureka/
 
 ---
 spring:
@@ -38,7 +56,7 @@ spring:
     activate:
       on-profile: docker
   datasource:
-    url: jdbc:postgresql://postgres-db:5432/db_ms_avis
+    url: jdbc:postgresql://postgres-avis:5432/db_ms_avis
     username: user_immo
     password: password_immo
   jpa:
@@ -46,9 +64,9 @@ spring:
       ddl-auto: update
 
 server:
-  port: 8085
+  port: 8089
 
 eureka:
   client:
     service-url:
-      defaultZone: http://eureka-server:8721/eureka/
+      defaultZone: http://eureka-server:8761/eureka/

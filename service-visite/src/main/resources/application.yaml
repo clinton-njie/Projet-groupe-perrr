@@ -1,6 +1,6 @@
 spring:
   application:
-    name: service-visite
+    name: visite-service
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/service_visite_db}
@@ -21,6 +21,9 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        max.block.ms: 3000
+        spring.json.add.type.headers: false
 
 server:
   port: 8085

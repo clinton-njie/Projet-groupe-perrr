@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class BienResponse {
 private Long id;
-private String titre;
+private String nom;
 private String agentEmail;
-}  
+private String categorie;
+}

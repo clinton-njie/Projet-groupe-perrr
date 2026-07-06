@@ -1,6 +1,7 @@
 package com.plateforme.immo.avis.controller;
 
 import com.plateforme.immo.avis.dto.*;
+import com.plateforme.immo.avis.feign.UserServiceClient;
 import com.plateforme.immo.avis.model.*;
 import com.plateforme.immo.avis.service.AvisService;
 import com.plateforme.immo.avis.service.OpportuniteService;
@@ -22,6 +23,7 @@ public class AvisController {
     @Autowired private AvisService avisService;
     @Autowired private OpportuniteService opportuniteService;
     @Autowired private JwtUtil jwtUtil;
+    @Autowired private UserServiceClient userServiceClient;
 
     private String cleanToken(String header) {
         if (header == null || !header.startsWith("Bearer ")) {
@@ -30,9 +32,18 @@ public class AvisController {
         return header.replace("Bearer ", "");
     }
 
+    // Le JWT ne porte que l'email ; l'ID interne est résolu via user-service.
+    private Long resolveUserId(String token) {
+        Long userId = userServiceClient.getAuthUserIdByEmail(jwtUtil.extractEmail(token));
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Utilisateur introuvable");
+        }
+        return userId;
+    }
+
     @GetMapping("/opportunites/{clientId}")
     public ResponseEntity<List<OpportuniteNotation>> getOpportunites(@PathVariable Long clientId, @RequestHeader("Authorization") String authHeader) {
-        Long tokenUserId = jwtUtil.extractUserId(cleanToken(authHeader));
+        Long tokenUserId = resolveUserId(cleanToken(authHeader));
         if (!tokenUserId.equals(clientId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -42,19 +53,17 @@ public class AvisController {
     @PostMapping("/transaction")
     public ResponseEntity<Avis> soumettreAvisTransaction(@RequestHeader("Authorization") String authHeader, @Valid @RequestBody AvisTransactionDTO dto) {
         String token = cleanToken(authHeader);
-        Long clientId = jwtUtil.extractUserId(token);
-        String role = jwtUtil.extractRole(token);
-
-        if (!"CLIENT".equals(role)) {
+        if (!jwtUtil.hasRole(token, "ROLE_CLIENT")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
+        Long clientId = resolveUserId(token);
         return ResponseEntity.status(HttpStatus.CREATED).body(avisService.soumettreAvisTransaction(clientId, dto));
     }
 
     @PostMapping("/plateforme")
     public ResponseEntity<Avis> soumettreAvisPlateforme(@RequestHeader("Authorization") String authHeader, @Valid @RequestBody AvisPlatformeDTO dto) {
         String token = cleanToken(authHeader);
-        Long clientId = jwtUtil.extractUserId(token);
+        Long clientId = resolveUserId(token);
         return ResponseEntity.status(HttpStatus.CREATED).body(avisService.soumettreAvisPlateforme(clientId, dto));
     }
 

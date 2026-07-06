@@ -16,5 +16,7 @@ private LocalDateTime dateHeureFin;
 private VisitStatut statut;
 private String paymentId;
 private LocalDateTime createdAt;
+private String nomUtilisateur;
+private String nomBien;
+private boolean annulationVerrouillee;
 }
-

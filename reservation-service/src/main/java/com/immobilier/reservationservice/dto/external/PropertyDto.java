@@ -5,15 +5,18 @@ import lombok.Setter;
 
 @Getter
 @Setter
-//Classe permettant de représenter une propriété dans le contexte de la réservation
-//DTO(Data Transfer Object) permet de transférer les données de la propriété entre les différentes couches de l'application
+// Représente un bien tel que renvoyé par bien-service (GET /api/biens/{id})
 public class PropertyDto {
 
     private Long id;
 
-    private String title;
+    private String nom;
 
-    private Double dailyPrice;
+    private Float prixMensuel;
 
-    private Boolean available;
+    private String statut;
+
+    // Email de l'agent propriétaire (exposé par bien-service) : sert à résoudre
+    // l'agentId numérique pour l'événement transaction.terminee consommé par ms-avis.
+    private String agentEmail;
 }

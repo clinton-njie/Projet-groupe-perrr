@@ -6,9 +6,11 @@ import com.immobilier.reservationservice.client.UserClient;
 import com.immobilier.reservationservice.dto.ReservationEvent;
 import com.immobilier.reservationservice.dto.ReservationRequest;
 import com.immobilier.reservationservice.dto.ReservationResponse;
+import com.immobilier.reservationservice.dto.TransactionTermineeEvent;
 import com.immobilier.reservationservice.dto.external.PaymentRequestDto;
 import com.immobilier.reservationservice.dto.external.PaymentResponseDto;
 import com.immobilier.reservationservice.dto.external.PropertyDto;
+import com.immobilier.reservationservice.dto.external.StatutBienUpdateRequest;
 import com.immobilier.reservationservice.dto.external.UserDto;
 import com.immobilier.reservationservice.entity.Reservation;
 import com.immobilier.reservationservice.enums.ReservationStatus;
@@ -18,6 +20,7 @@ import com.immobilier.reservationservice.mapper.ReservationMapper;
 import com.immobilier.reservationservice.repository.ReservationRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,435 +30,241 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+// Pas de @Transactional de classe : createReservation() appelle payment-service en synchrone,
+// qui rappelle aussitôt PUT /api/reservations/{id}/confirmer -- la réservation doit donc être
+// committée avant cet appel sortant, pas retenue dans une transaction encore ouverte.
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
-public class ReservationServiceImpl
-        implements ReservationService {
+public class ReservationServiceImpl implements ReservationService {
 
-        private final ReservationRepository repository;
-        private final UserClient userClient;
-        private final PaymentClient paymentClient;
-        private final PropertyClient propertyClient;
-        private final PriceCalculatorService priceCalculator;
-        private final ReservationEventProducer producer;
-        private final ReservationMapper mapper;
-        // Kafka (plus tard)
-        // private final ReservationEventProducer producer;
+    private final ReservationRepository repository;
+    private final UserClient userClient;
+    private final PaymentClient paymentClient;
+    private final PropertyClient propertyClient;
+    private final ReservationEventProducer producer;
+    private final ReservationMapper mapper;
 
-        @Override
-    public ReservationResponse createReservation(
-            Long userId,
-            ReservationRequest request
-    ) {
+    @Override
+    public ReservationResponse createReservation(Long userId, ReservationRequest request) {
 
-        UserDto user =
-                userClient.getUserById(userId);
-
+        UserDto user = userClient.getUserById(userId);
         if (user == null) {
-
-            throw new BusinessException(
-                    "Utilisateur introuvable"
-            );
+            throw new BusinessException("Utilisateur introuvable");
         }
 
-        PropertyDto property =
-                propertyClient.getProperty(
-                        request.getPropertyId()
-                );
-
+        PropertyDto property = propertyClient.getProperty(request.getPropertyId());
         if (property == null) {
-
-            throw new BusinessException(
-                    "Bien introuvable"
-            );
+            throw new BusinessException("Bien introuvable");
         }
 
-        boolean conflict =
-                repository.hasConflict(
-                        property.getId(),
-                        request.getStartDate(),
-                        request.getEndDate()
-                );
-
+        boolean conflict = repository.hasConflict(property.getId(), request.getStartDate(), request.getEndDate());
         if (conflict) {
-
-            throw new BusinessException(
-                    "Bien déjà réservé sur cette période"
-            );
+            throw new BusinessException("Bien déjà réservé sur cette période");
         }
 
-        Double amount =
-                priceCalculator.calculatePrice(
-                        property.getDailyPrice(),
-                        request.getStartDate(),
-                        request.getEndDate()
-                );
+        Double amount = property.getPrixMensuel().doubleValue() * computeMonths(request.getStartDate(), request.getEndDate());
+        String nomUtilisateur = (user.getFirstname() + " " + user.getLastname()).trim();
 
-        Reservation reservation =
-                new Reservation();
-
+        Reservation reservation = new Reservation();
         reservation.setUserId(userId);
-
         reservation.setPropertyId(property.getId());
-
-        reservation.setStartDate(
-                request.getStartDate()
-        );
-
-        reservation.setEndDate(
-                request.getEndDate()
-        );
-
+        reservation.setAgentId(resolveAgentId(property.getAgentEmail()));
+        reservation.setStartDate(request.getStartDate());
+        reservation.setEndDate(request.getEndDate());
         reservation.setAmount(amount);
+        reservation.setStatus(ReservationStatus.EN_ATTENTE);
+        reservation.setCreatedAt(LocalDateTime.now());
+        reservation.setOperateur(request.getOperateur());
+        reservation.setTelephone(request.getTelephone());
+        reservation.setNomBien(property.getNom());
+        reservation.setNomUtilisateur(nomUtilisateur);
 
-        reservation.setStatus(
-                ReservationStatus.PENDING
-        );
+        reservation = repository.save(reservation);
 
-        reservation.setCreatedAt(
-                LocalDateTime.now()
-        );
+        PaymentResponseDto paymentResponse;
+        try {
+            paymentResponse = paymentClient.initiatePayment(PaymentRequestDto.builder()
+                    .referenceId(reservation.getId())
+                    .referenceType("RESERVATION")
+                    .nomUtilisateur(nomUtilisateur)
+                    .nomBien(reservation.getNomBien())
+                    .montant(amount)
+                    .operateur(request.getOperateur())
+                    .telephone(request.getTelephone())
+                    .build());
+        } catch (Exception e) {
+            log.error("Echec appel payment-service pour la reservation {}", reservation.getId(), e);
+            throw new BusinessException("Paiement indisponible, réessayez");
+        }
 
-        repository.save(reservation);
+        if (paymentResponse == null) {
+            throw new BusinessException("Paiement indisponible, réessayez");
+        }
 
-        producer.publish(
+        // Mise à jour ciblée du seul paymentId (voir ReservationRepository.updatePaymentId) :
+        // le callback synchrone confirmer() a pu déjà changer le statut entre-temps sur une
+        // autre requête -- un save() de l'objet "reservation" ici l'écraserait avec la valeur
+        // obsolète tenue par le cache de 1er niveau Hibernate de cette requête.
+        repository.updatePaymentId(reservation.getId(), paymentResponse.getPaymentId());
+        reservation.setPaymentId(paymentResponse.getPaymentId());
 
-            ReservationEvent.builder()
+        publishEvent(ReservationEvent.builder()
                 .eventType("RESERVATION_CREATED")
                 .reservationId(reservation.getId())
                 .userId(reservation.getUserId())
                 .propertyId(reservation.getPropertyId())
                 .message("Nouvelle réservation créée")
-                .build()
-        );
+                .build());
 
-        return mapToResponse(reservation);
+        return mapper.toResponse(reservation);
     }
 
-        @Override
-        @Transactional
-        public ReservationResponse confirmReservation(
-                Long id) {
+    @Override
+    @Transactional
+    public ReservationResponse confirmReservation(Long id) {
 
         Reservation reservation = repository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Réservation introuvable"));
+                .orElseThrow(() -> new BusinessException("Réservation introuvable"));
 
-        reservation.setStatus(
-                ReservationStatus.CONFIRMED);
+        reservation.setStatus(ReservationStatus.CONFIRME);
+        Reservation saved = repository.save(reservation);
 
-        Reservation saved =
-                repository.save(reservation);
+        propertyClient.changerStatut(saved.getPropertyId(), new StatutBienUpdateRequest("LOUE"));
+
+        publishEvent(ReservationEvent.builder()
+                .eventType("RESERVATION_CONFIRMED")
+                .reservationId(saved.getId())
+                .userId(saved.getUserId())
+                .propertyId(saved.getPropertyId())
+                .message("Réservation confirmée")
+                .build());
+
+        // Transaction terminée avec succès -> ms-avis crée l'opportunité de notation.
+        publishTransactionTerminee(saved);
 
         return mapper.toResponse(saved);
-        }
+    }
 
-        @Override
-        @Transactional
-        public ReservationResponse cancelReservation(
-                Long id) {
+    @Override
+    @Transactional
+    public ReservationResponse cancelReservation(Long id) {
 
         Reservation reservation = repository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Réservation introuvable"));
+                .orElseThrow(() -> new BusinessException("Réservation introuvable"));
 
-        reservation.setStatus(
-                ReservationStatus.CANCELLED);
+        reservation.setStatus(ReservationStatus.ANNULE);
+        Reservation saved = repository.save(reservation);
 
-        Reservation saved =
-                repository.save(reservation);
+        propertyClient.changerStatut(saved.getPropertyId(), new StatutBienUpdateRequest("DISPONIBLE"));
+
+        publishEvent(ReservationEvent.builder()
+                .eventType("RESERVATION_CANCELLED")
+                .reservationId(saved.getId())
+                .userId(saved.getUserId())
+                .propertyId(saved.getPropertyId())
+                .message("Réservation annulée")
+                .build());
 
         return mapper.toResponse(saved);
+    }
+
+    private long computeMonths(LocalDate start, LocalDate end) {
+        if (!end.isAfter(start)) {
+            throw new BusinessException("Dates invalides");
         }
-
-        @Override
-        @Transactional
-        public ReservationResponse initiatePayment(
-
-                Long reservationId) {
-
-        Reservation reservation =
-                repository.findById(reservationId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Réservation introuvable"));
-
-        if (reservation.getStatus() !=
-                ReservationStatus.APPROVED) {
-
-                throw new RuntimeException(
-                        "La réservation doit être APPROVED.");
+        long moisEntiers = ChronoUnit.MONTHS.between(start, end);
+        LocalDate finMoisEntiers = start.plusMonths(moisEntiers);
+        if (finMoisEntiers.isBefore(end)) {
+            moisEntiers += 1; // mois partiel arrondi au-dessus
         }
-
-        reservation.setStatus(
-                ReservationStatus.PAYMENT_PENDING
-        );
-
-        Reservation saved =
-                repository.save(
-                        reservation
-                );
-
-        PaymentRequestDto request =
-                PaymentRequestDto.builder()
-                        .reservationId(saved.getId())
-                        .userId(saved.getUserId())
-                        .propertyId(saved.getPropertyId())
-                        .amount(calculatePrice(saved.getAmount(),saved.getStartDate(),saved.getEndDate()))
-                        .build();
-
-        PaymentResponseDto paymentResponse =
-                paymentClient.initiatePayment(request);
-
-                if (paymentResponse == null) {
-                throw new RuntimeException("Échec de l'initialisation du paiement.");
-                }
-
-                return mapper.toResponse(saved);
-        }
-
-     public double calculatePrice(
-            Double monthlyPrice,
-            LocalDate startDate,
-            LocalDate endDate
-    ) {
-
-        long days =
-                ChronoUnit.DAYS.between(
-                        startDate,
-                        endDate
-                );
-
-        if(days <= 0){
-            throw new IllegalArgumentException(
-                    "Dates invalides"
-            );
-        }
-
-        return (monthlyPrice/30) * days;
+        return Math.max(moisEntiers, 1);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ReservationResponse getReservationById(
-            Long reservationId
-    ) {
+    public ReservationResponse getReservationById(Long reservationId) {
 
-        Reservation reservation =
-                repository.findById(reservationId)
-                        .orElseThrow(
-                                () -> new BusinessException(
-                                        "Réservation introuvable"
-                                )
-                        );
+        Reservation reservation = repository.findById(reservationId)
+                .orElseThrow(() -> new BusinessException("Réservation introuvable"));
 
-        return mapToResponse(reservation);
+        return mapper.toResponse(reservation);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ReservationResponse>
-    getReservationsByUser(Long userId) {
+    public List<ReservationResponse> getReservationsByUser(Long userId) {
 
-        return repository.findAll()
+        return repository.findByUserId(userId)
                 .stream()
-                .filter(r -> r.getUserId().equals(userId))
-                .map(this::mapToResponse)
+                .map(mapper::toResponse)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ReservationResponse>
-    getPendingReservations() {
-
-        return repository
-                .findByStatus(
-                        ReservationStatus.PENDING
-                )
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    @Override
-    public ReservationResponse approve(
-            Long reservationId,
-            Long agentId
-    ) {
-
-        Reservation reservation =
-                repository.findById(
-                        reservationId
-                ).orElseThrow(
-                        () -> new BusinessException(
-                                "Réservation introuvable"
-                        )
-                );
-
-        reservation.setStatus(
-                ReservationStatus.APPROVED
-        );
-
-        reservation.setAgentId(agentId);
-
-        reservation.setReviewedAt(
-                LocalDateTime.now()
-        );
-
-        repository.save(reservation);
-        // Kafka :
-        //producer.publish(APPROVED)
-        producer.publish(
-
-            ReservationEvent.builder()
-                .eventType("RESERVATION_CREATED")
-                .reservationId(reservation.getId())
-                .userId(reservation.getUserId())
-                .propertyId(reservation.getPropertyId())
-                .message("Nouvelle réservation créée")
-                .build()
-         );
-
-        return mapToResponse(reservation);
-    }
-
-    @Override
-    public ReservationResponse reject(
-            Long reservationId,
-            Long agentId
-    ) {
-
-        Reservation reservation =
-                repository.findById(
-                        reservationId
-                ).orElseThrow(
-                        () -> new BusinessException(
-                                "Réservation introuvable"
-                        )
-                );
-
-        reservation.setStatus(
-                ReservationStatus.REJECTED
-        );
-
-        reservation.setAgentId(agentId);
-
-        reservation.setReviewedAt(
-                LocalDateTime.now()
-        );
-
-        repository.save(reservation);
-
-         producer.publish(
-
-            ReservationEvent.builder()
-                .eventType("RESERVATION_REJECTED")
-                .reservationId(reservation.getId())
-                .userId(reservation.getUserId())
-                .agentId(agentId)
-                .message("Réservation rejetée")
-                .build()
-        );
-
-        return mapToResponse(reservation);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ReservationResponse>
-    getAllReservations() {
-
-        return repository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    public boolean existeInteraction(Long utilisateurId, Long agentId) {
+        return repository.existeInteraction(utilisateurId, agentId);
     }
 
     @Override
     public void expireOldReservations() {
 
-        List<Reservation> pendingReservations =
-                repository.findByStatus(
-                        ReservationStatus.PENDING
-                );
+        List<Reservation> reservationsEnAttente = repository.findByStatus(ReservationStatus.EN_ATTENTE);
 
-        for (Reservation reservation
-                : pendingReservations) {
+        for (Reservation reservation : reservationsEnAttente) {
 
-            if (reservation.getCreatedAt()
-                    .isBefore(
-                            LocalDateTime.now()
-                                    .minusHours(24)
-                    )) {
+            if (reservation.getCreatedAt().isBefore(LocalDateTime.now().minusHours(24))) {
 
-                reservation.setStatus(
-                        ReservationStatus.EXPIRED
-                );
-
+                reservation.setStatus(ReservationStatus.EXPIRE);
                 repository.save(reservation);
 
-            producer.publish(
-
-                ReservationEvent.builder()
-                    .eventType("RESERVATION_EXPIRED")
-                    .reservationId(reservation.getId())
-                    .userId(reservation.getUserId())
-                    .message("Réservation expirée")
-                    .build()
-            );
+                publishEvent(ReservationEvent.builder()
+                        .eventType("RESERVATION_EXPIRED")
+                        .reservationId(reservation.getId())
+                        .userId(reservation.getUserId())
+                        .message("Réservation expirée")
+                        .build());
             }
         }
     }
 
-    private ReservationResponse mapToResponse(
-        Reservation reservation) {
-
-        ReservationResponse response =
-                new ReservationResponse();
-
-        response.setId(
-                reservation.getId()
-        );
-
-        response.setUserId(
-                reservation.getUserId()
-        );
-
-        response.setPropertyId(
-                reservation.getPropertyId()
-        );
-
-        response.setStartDate(
-                reservation.getStartDate()
-        );
-
-        response.setEndDate(
-                reservation.getEndDate()
-        );
-
-        response.setAmount(
-                reservation.getAmount()
-        );
-
-        response.setStatus(
-                reservation.getStatus().name()
-        );
-
-        return response;
+    // Best-effort : un souci Kafka (broker indisponible, etc.) ne doit pas faire échouer
+    // l'opération métier déjà commitée en base.
+    private void publishEvent(ReservationEvent event) {
+        try {
+            producer.publish(event);
+        } catch (Exception e) {
+            log.warn("Echec publication événement Kafka {} pour la réservation {}", event.getEventType(), event.getReservationId(), e);
+        }
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<ReservationResponse>
-    getReservationsByAgent(Long agentId) {
-
-        return repository
-                .findByAgentId(agentId)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+    // Best-effort : la notation est secondaire, un souci Kafka ne doit pas casser la confirmation.
+    private void publishTransactionTerminee(Reservation reservation) {
+        try {
+            producer.publishTransactionTerminee(TransactionTermineeEvent.builder()
+                    .transactionId(reservation.getId())
+                    .clientId(reservation.getUserId())
+                    .agentId(reservation.getAgentId())
+                    .bienId(reservation.getPropertyId())
+                    .typeTransaction("RESERVATION")
+                    .build());
+        } catch (Exception e) {
+            log.warn("Echec publication transaction.terminee pour la réservation {}", reservation.getId(), e);
+        }
     }
 
-}  
+    // Résout l'id numérique de l'agent à partir de son email (exposé par bien-service).
+    // Best-effort : un agent introuvable ne doit pas empêcher la réservation ; agentId restera null.
+    private Long resolveAgentId(String agentEmail) {
+        if (agentEmail == null || agentEmail.isBlank()) {
+            return null;
+        }
+        try {
+            return userClient.getAuthUserIdByEmail(agentEmail);
+        } catch (Exception e) {
+            log.warn("Impossible de résoudre l'agentId pour l'email {}", agentEmail, e);
+            return null;
+        }
+    }
+}

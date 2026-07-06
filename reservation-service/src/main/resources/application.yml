@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: service-reservation
+    name: reservation-service
 
   datasource:
     url: jdbc:postgresql://localhost:5432/reservation_db
@@ -17,6 +17,12 @@ spring:
 
   kafka:
     bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        max.block.ms: 3000
+        spring.json.add.type.headers: false
 
   mvc:
     pathmatch:
@@ -26,11 +32,11 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          secret-key: TA_CLE_SECRETE
+          secret-key: "ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue"
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: http://eureka-server:8761/eureka/
 
 management:
   endpoints:

@@ -1,5 +1,6 @@
 package com.microservices.servicevisite.entity;
 
+import com.microservices.servicevisite.enums.OperateurMobileMoney;
 import com.microservices.servicevisite.enums.VisitStatut;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -42,5 +43,20 @@ private VisitStatut statut;
 private String paymentId;
 
 private LocalDateTime createdAt;
-}
 
+// snapshots utilisés pour le paiement/la notification
+private String nomUtilisateur;
+
+private String nomBien;
+
+private String categorieBien;
+
+@Enumerated(EnumType.STRING)
+private OperateurMobileMoney operateur;
+
+private String telephone;
+
+// verrouillée par CancellationLockScheduler quand il reste <24h avant la visite
+@Builder.Default
+private boolean annulationVerrouillee = false;
+}

@@ -1,5 +1,6 @@
 package com.microservices.servicevisite.feign;
 
+import com.microservices.servicevisite.enums.OperateurMobileMoney;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,7 +9,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PaymentRequest {
-private Long visitId;
+private Long referenceId;
+private String referenceType; // "VISITE"
+private String nomUtilisateur;
+private String nomBien;
 private Double montant;
-private String clientId;
+private OperateurMobileMoney operateur;
+private String telephone;
 }

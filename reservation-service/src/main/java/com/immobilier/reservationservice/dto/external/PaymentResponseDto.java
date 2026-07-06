@@ -5,12 +5,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
+// Représente la réponse de payment-service (POST /payments)
 public class PaymentResponseDto {
-    //Classe représentant la réponse de paiement reçue du service de paiement externe
 
-    private boolean success;
+    private String paymentId;
 
-    private String transactionId;
-
-    private String message;
+    private String statut;
 }

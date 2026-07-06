@@ -1,5 +1,6 @@
 package com.immobilier.reservationservice.entity;
 
+import com.immobilier.reservationservice.enums.OperateurMobileMoney;
 import com.immobilier.reservationservice.enums.ReservationStatus;
 
 import jakarta.persistence.*;
@@ -12,7 +13,6 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "reservations")
-
 @Getter
 @Setter
 public class Reservation {
@@ -27,6 +27,10 @@ public class Reservation {
     // bien concerné
     private Long propertyId;
 
+    // agent propriétaire du bien (résolu depuis agentEmail) : propagé à ms-avis
+    // via l'événement transaction.terminee pour permettre la notation de l'agent
+    private Long agentId;
+
     private LocalDate startDate;
 
     private LocalDate endDate;
@@ -40,9 +44,16 @@ public class Reservation {
     // date création réservation
     private LocalDateTime createdAt;
 
-    // date décision agent
-    private LocalDateTime reviewedAt;
+    @Enumerated(EnumType.STRING)
+    private OperateurMobileMoney operateur;
 
-    // agent ayant traité la demande
-    private Long agentId;
+    private String telephone;
+
+    // référence du paiement retournée par payment-service
+    private String paymentId;
+
+    // snapshot au moment de la création (utilisés pour le paiement/la notification)
+    private String nomBien;
+
+    private String nomUtilisateur;
 }

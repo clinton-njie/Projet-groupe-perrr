@@ -28,15 +28,14 @@ LocalDateTime limite = LocalDateTime.now().minusMinutes(15);
 
 List<Visit> visitsExpirees = visitRepository
 .findByStatutAndCreatedAtBefore(
-VisitStatut.EN_ATTENTE_PAIEMENT,
+VisitStatut.EN_ATTENTE,
 limite
 );
 
 for (Visit visit : visitsExpirees) {
-visit.setStatut(VisitStatut.ANNULEE);
+visit.setStatut(VisitStatut.ANNULEE_CLIENT);
 visitRepository.save(visit);
-log.info("Visite {} annulée après TTL de 15 minutes", visit.getId());
+log.info("Visite {} annulée après TTL de 15 minutes (paiement jamais confirmé)", visit.getId());
 }
 }
 }
-

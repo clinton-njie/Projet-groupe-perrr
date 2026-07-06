@@ -1,5 +1,6 @@
 package com.immobilier.reservationservice.dto.external;
 
+import com.immobilier.reservationservice.enums.OperateurMobileMoney;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,10 +12,13 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+// Contrat unifié attendu par payment-service (POST /payments)
 public class PaymentRequestDto {
-    //Classe représentant la requête de paiement envoyée au service de paiement externe
-    private Long userId;
-    private Long reservationId;
-    private Long propertyId;
-    private Double amount;
+    private Long referenceId;
+    private String referenceType; // "RESERVATION"
+    private String nomUtilisateur;
+    private String nomBien;
+    private Double montant;
+    private OperateurMobileMoney operateur;
+    private String telephone;
 }

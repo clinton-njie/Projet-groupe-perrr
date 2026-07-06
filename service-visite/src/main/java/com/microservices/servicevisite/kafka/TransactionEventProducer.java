@@ -5,15 +5,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+/**
+ * Publie sur le topic "transaction.terminee" quand une visite est TERMINE.
+ * Consommé par ms-avis pour créer l'opportunité de notation.
+ */
 @Service
 @RequiredArgsConstructor
 public class TransactionEventProducer {
 
-private final KafkaTemplate<String, Object> kafkaTemplate;
+    public static final String TOPIC_TRANSACTION_TERMINEE = "transaction.terminee";
 
-private static final String TOPIC = "transaction.terminee";
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-public void publierTransactionTerminee(TransactionTermineeEvent event) {
-kafkaTemplate.send(TOPIC, event);
-}
+    public void publier(TransactionTermineeEvent event) {
+        kafkaTemplate.send(TOPIC_TRANSACTION_TERMINEE, event);
+    }
 }

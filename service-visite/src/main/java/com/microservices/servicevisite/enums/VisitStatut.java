@@ -2,9 +2,11 @@ package com.microservices.servicevisite.enums;
 
 
 public enum VisitStatut {
-    EN_ATTENTE_PAIEMENT,
-    EN_ATTENTE_AGENT,
-    CONFIRMEE,
-    REFUSEE,
-    ANNULEE
+    EN_ATTENTE,
+    PAYEE,
+    EN_COURS,
+    TERMINE,
+    ANNULEE_CLIENT,
+    ANNULEE_AGENT,
+    NON_PRESENTEE
 }
