@@ -1,0 +1,40 @@
+services:
+
+  db-signalements:
+    image: postgres:15
+    container_name: db-signalements
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: signalements_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5438:5432"
+    volumes:
+      - signalements_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
+
+  service-signalements:
+    build: .
+    container_name: service-signalements
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    depends_on:
+      - db-signalements
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-signalements:5432/signalements_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - projet-immo-network
+
+networks:
+  projet-immo-network:
+    external: true
+    name: projet-groupe-perrr_projet-immo-network
+
+volumes:
+  signalements_data:

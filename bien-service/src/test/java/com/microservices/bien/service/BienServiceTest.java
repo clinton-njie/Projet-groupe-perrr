@@ -42,6 +42,9 @@ class BienServiceTest {
     @Mock
     private PrixVisiteRepository prixVisiteRepository;
 
+    @Mock
+    private ImageStorageService imageStorageService;
+
     @InjectMocks
     private BienService bienService;
 
@@ -59,7 +62,8 @@ class BienServiceTest {
                 .nom("Villa Bella")
                 .ville("Douala")
                 .quartier("Bonapriso")
-                .photoPrincipale("photo.jpg")
+                .photoPrincipale("https://res.cloudinary.com/demo/image/upload/biens/photo.jpg")
+                .imagePublicId("biens/photo")
                 .prixMensuel(250000f)
                 .description("Belle villa")
                 .build();

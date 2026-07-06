@@ -3,6 +3,7 @@ package com.microservices.bien.service;
 import com.microservices.bien.dto.*;
 import com.microservices.bien.entity.Bien;
 import com.microservices.bien.entity.Categorie;
+import com.microservices.bien.entity.ImageBien;
 import com.microservices.bien.entity.PrixVisite;
 import com.microservices.bien.entity.StatutBien;
 import com.microservices.bien.repository.BienRepository;
@@ -13,6 +14,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -21,6 +23,7 @@ public class BienService {
 
     private final BienRepository bienRepository;
     private final PrixVisiteRepository prixVisiteRepository;
+    private final ImageStorageService imageStorageService;
 
     // ✅ Créer un bien
     @Transactional
@@ -34,7 +37,8 @@ public class BienService {
                 .ville(request.getVille())
                 .quartier(request.getQuartier())
                 .photoPrincipale(request.getPhotoPrincipale())
-                .photosSecondaires(request.getPhotosSecondaires())
+                .imagePublicId(request.getImagePublicId())
+                .photosSecondaires(toEntityImages(request.getPhotosSecondaires()))
                 .prixMensuel(request.getPrixMensuel())
                 .nombrePiecesDisponibles(request.getNombrePiecesDisponibles())
                 .description(request.getDescription())
@@ -79,12 +83,17 @@ public class BienService {
 
         validerNombrePieces(request.getCategorie(), request.getNombrePiecesDisponibles());
 
+        // Nettoyage Cloudinary : supprimer les images retirées lors de la modification
+        List<ImageBien> nouvellesSecondaires = toEntityImages(request.getPhotosSecondaires());
+        supprimerImagesRetirees(bien, request.getImagePublicId(), nouvellesSecondaires);
+
         bien.setCategorie(request.getCategorie());
         bien.setNom(request.getNom());
         bien.setVille(request.getVille());
         bien.setQuartier(request.getQuartier());
         bien.setPhotoPrincipale(request.getPhotoPrincipale());
-        bien.setPhotosSecondaires(request.getPhotosSecondaires());
+        bien.setImagePublicId(request.getImagePublicId());
+        bien.setPhotosSecondaires(nouvellesSecondaires);
         bien.setPrixMensuel(request.getPrixMensuel());
         bien.setNombrePiecesDisponibles(request.getNombrePiecesDisponibles());
         bien.setDescription(request.getDescription());
@@ -105,6 +114,10 @@ public class BienService {
         if (!isAdmin && !isOwner) {
             throw new IllegalStateException("Vous n'êtes pas autorisé à supprimer ce bien");
         }
+
+        // Supprimer d'abord toutes les images du bien sur Cloudinary (best-effort)
+        imageStorageService.delete(bien.getImagePublicId());
+        bien.getPhotosSecondaires().forEach(img -> imageStorageService.delete(img.getPublicId()));
 
         bienRepository.delete(bien);
 
@@ -187,7 +200,8 @@ public class BienService {
                 .ville(bien.getVille())
                 .quartier(bien.getQuartier())
                 .photoPrincipale(bien.getPhotoPrincipale())
-                .photosSecondaires(bien.getPhotosSecondaires())
+                .imagePublicId(bien.getImagePublicId())
+                .photosSecondaires(toDtoImages(bien.getPhotosSecondaires()))
                 .prixMensuel(bien.getPrixMensuel())
                 .nombrePiecesDisponibles(bien.getNombrePiecesDisponibles())
                 .date(bien.getDate())
@@ -195,5 +209,53 @@ public class BienService {
                 .agentEmail(bien.getAgentEmail())
                 .statut(bien.getStatut())
                 .build();
+    }
+
+    // ---------- Gestion des images (Cloudinary) ----------
+
+    // ✅ Upload d'une image vers Cloudinary (retourne secure_url + public_id)
+    public ImageUploadResponse uploadImage(org.springframework.web.multipart.MultipartFile file) {
+        return imageStorageService.upload(file);
+    }
+
+    // ✅ Suppression directe d'une image orpheline sur Cloudinary (image uploadée puis non utilisée)
+    public MessageResponse supprimerImage(String publicId) {
+        imageStorageService.delete(publicId);
+        return MessageResponse.builder()
+                .message("Image supprimée avec succès")
+                .build();
+    }
+
+    // Supprime de Cloudinary les images présentes avant modification mais absentes après
+    private void supprimerImagesRetirees(Bien ancien, String nouveauPublicIdPrincipale, List<ImageBien> nouvellesSecondaires) {
+        // Photo principale remplacée
+        String anciennePrincipale = ancien.getImagePublicId();
+        if (anciennePrincipale != null && !anciennePrincipale.equals(nouveauPublicIdPrincipale)) {
+            imageStorageService.delete(anciennePrincipale);
+        }
+        // Photos secondaires retirées
+        List<String> conserves = nouvellesSecondaires.stream().map(ImageBien::getPublicId).toList();
+        ancien.getPhotosSecondaires().stream()
+                .map(ImageBien::getPublicId)
+                .filter(pid -> pid != null && !conserves.contains(pid))
+                .forEach(imageStorageService::delete);
+    }
+
+    private List<ImageBien> toEntityImages(List<ImageInfo> images) {
+        if (images == null) {
+            return new ArrayList<>();
+        }
+        return images.stream()
+                .map(i -> ImageBien.builder().url(i.getUrl()).publicId(i.getPublicId()).build())
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+    }
+
+    private List<ImageInfo> toDtoImages(List<ImageBien> images) {
+        if (images == null) {
+            return new ArrayList<>();
+        }
+        return images.stream()
+                .map(i -> ImageInfo.builder().url(i.getUrl()).publicId(i.getPublicId()).build())
+                .toList();
     }
 }

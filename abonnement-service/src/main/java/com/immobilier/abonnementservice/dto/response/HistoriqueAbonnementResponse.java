@@ -9,7 +9,7 @@ import java.util.List;
 @Builder
 public class HistoriqueAbonnementResponse {
 
-    private Long agentId;
+    private Long userId;
+    private int nombre;
     private List<AbonnementResponse> abonnements;
-
 }

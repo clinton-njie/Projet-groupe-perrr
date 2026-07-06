@@ -1,32 +1,56 @@
 package com.immobilier.abonnementservice.controller;
 
-import com.immobilier.abonnementservice.dto.commun.ApiResponse;
+import com.immobilier.abonnementservice.dto.response.AbonnementResponse;
+import com.immobilier.abonnementservice.dto.response.HistoriqueAbonnementResponse;
 import com.immobilier.abonnementservice.dto.response.StatistiqueAbonnementResponse;
+import com.immobilier.abonnementservice.service.interfaces.ConsultationService;
 import com.immobilier.abonnementservice.service.interfaces.StatistiqueService;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.List;
 
+// Espace ADMIN : consultation globale + statistiques.
 @RestController
 @RequestMapping("/api/admin/abonnements")
 @RequiredArgsConstructor
 public class AdminAbonnementController {
 
+    private final ConsultationService consultationService;
     private final StatistiqueService statistiqueService;
 
-    // =========================
-    // STATISTIQUES GLOBALES
-    // =========================
-    @GetMapping("/statistiques")
-    public ApiResponse<StatistiqueAbonnementResponse> statistiques() {
+    @GetMapping
+    public ResponseEntity<List<AbonnementResponse>> tous() {
+        return ResponseEntity.ok(consultationService.tousLesAbonnements());
+    }
 
-        return ApiResponse.<StatistiqueAbonnementResponse>builder()
-                .success(true)
-                .message("Statistiques globales des abonnements")
-                .timestamp(LocalDateTime.now())
-                .data(statistiqueService.statistiques())
-                .build();
+    @GetMapping("/{id}")
+    public ResponseEntity<AbonnementResponse> parId(@PathVariable Long id) {
+        return ResponseEntity.ok(consultationService.parId(id));
+    }
+
+    @GetMapping("/utilisateur/{userId}/historique")
+    public ResponseEntity<HistoriqueAbonnementResponse> historique(@PathVariable Long userId) {
+        return ResponseEntity.ok(consultationService.historiqueUtilisateur(userId));
+    }
+
+    @GetMapping("/utilisateur/{userId}/actif")
+    public ResponseEntity<AbonnementResponse> actif(@PathVariable Long userId) {
+        return ResponseEntity.ok(consultationService.abonnementActifUtilisateur(userId));
+    }
+
+    @GetMapping("/statistiques")
+    public ResponseEntity<StatistiqueAbonnementResponse> stats() {
+        return ResponseEntity.ok(statistiqueService.statistiquesGlobales());
+    }
+
+    @GetMapping("/statistiques/periode")
+    public ResponseEntity<StatistiqueAbonnementResponse> statsPeriode(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate debut,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin) {
+        return ResponseEntity.ok(statistiqueService.statistiquesParPeriode(debut, fin));
     }
 }

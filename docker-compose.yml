@@ -1,9 +1,37 @@
+# Plafond mémoire JVM partagé par tous les services Spring Boot.
+# SerialGC + metaspace/threads réduits : indispensable pour faire tenir ~11 services
+# + Kafka + 9 bases dans une VM Docker à mémoire limitée.
+x-java-opts: &java-opts "-Xmx200m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -Xss512k"
+
 services:
   eureka-server:
     build: ./eureka-server
     container_name: eureka-server
+    restart: unless-stopped
     ports:
       - "8761:8761"
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
+    networks:
+      - projet-immo-network
+
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_HEAP_OPTS: "-Xmx256m -Xms128m"
     networks:
       - projet-immo-network
 
@@ -22,21 +50,27 @@ services:
   auth-service:
     build: ./auth-service
     container_name: auth-service
+    restart: unless-stopped
     ports:
       - "8081:8081"
     depends_on:
       - eureka-server
       - postgres-auth
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
     networks:
       - projet-immo-network
 
   api-gateway:
     build: ./service-api-gateway
     container_name: api-gateway
+    restart: unless-stopped
     ports:
       - "8222:8222"
     depends_on:
       - eureka-server
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
     networks:
       - projet-immo-network
 
@@ -55,11 +89,14 @@ services:
   service-utilisateur:
     build: ./service-user
     container_name: service-utilisateur
+    restart: unless-stopped
     ports:
       - "8082:8082"
     depends_on:
       - eureka-server
       - postgres-user
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
     networks:
       - projet-immo-network
 
@@ -78,11 +115,14 @@ services:
   service-messagerie:
     build: ./service-messagerie
     container_name: service-messagerie
+    restart: unless-stopped
     ports:
-      - "8086:8086"
+      - "8089:8089"
     depends_on:
       - eureka-server
       - postgres-messagerie
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
     networks:
       - projet-immo-network
 
@@ -103,10 +143,20 @@ services:
   abonnement-service:
     build: ./abonnement-service
     container_name: abonnement-service
+    restart: unless-stopped
     depends_on:
       - postgres-abonnement
+      - kafka
     ports:
       - "8087:8087"
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-abonnement:5432/abonnement_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      JWT_SECRET: ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     networks:
       - projet-immo-network
 
@@ -118,25 +168,272 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
-      - "5437:5432"
+      - "5441:5432"
     volumes:
       - reservation_data:/var/lib/postgresql/data
     networks:
       - projet-immo-network
 
   reservation-service:
-    image: reservation-service-reservation-service:latest
+    build: ./reservation-service
     container_name: reservation-service
+    restart: unless-stopped
     depends_on:
       - postgres-reservation
+      - kafka
+    ports:
+      - "8086:8086"
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-reservation:5432/reservation_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - projet-immo-network
+
+  postgres-bien:
+    image: postgres:15
+    container_name: postgres-bien
+    environment:
+      POSTGRES_DB: biendb
+      POSTGRES_USER: bien_user
+      POSTGRES_PASSWORD: bien_password
+    ports:
+      - "55435:5432"
+    volumes:
+      - bien_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
+
+  bien-service:
+    build: ./bien-service
+    container_name: bien-service
+    restart: unless-stopped
+    depends_on:
+      - eureka-server
+      - postgres-bien
+    ports:
+      - "8084:8084"
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
+      # Credentials Cloudinary — lus depuis le shell hôte ou un fichier .env (jamais en dur)
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+    networks:
+      - projet-immo-network
+
+  mysql-visite:
+    image: mysql:8
+    container_name: mysql-visite
+    command: --innodb-buffer-pool-size=64M --performance-schema=OFF
+    environment:
+      MYSQL_DATABASE: service_visite_db
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - visite_data:/var/lib/mysql
+    networks:
+      - projet-immo-network
+
+  service-visite:
+    build: ./service-visite
+    container_name: service-visite
+    restart: unless-stopped
+    depends_on:
+      - eureka-server
+      - mysql-visite
+      - kafka
+    ports:
+      - "8085:8085"
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-visite:3306/service_visite_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - projet-immo-network
+
+  postgres-payment:
+    image: postgres:15
+    container_name: postgres-payment
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: payment_password
+    ports:
+      - "5437:5432"
+    volumes:
+      - payment_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
+
+  service-paiement:
+    build: ./service-paiement
+    container_name: service-paiement
+    restart: unless-stopped
+    depends_on:
+      - eureka-server
+      - postgres-payment
     ports:
       - "8088:8088"
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-payment:5432/payment_db
+      SPRING_DATASOURCE_USERNAME: payment_user
+      SPRING_DATASOURCE_PASSWORD: payment_password
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - projet-immo-network
+
+  postgres-notification:
+    image: postgres:15
+    container_name: postgres-notification
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: notification_user
+      POSTGRES_PASSWORD: notification_password
+    ports:
+      - "5440:5432"
+    volumes:
+      - notification_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
+
+  service-notification:
+    build: ./service-notification
+    container_name: service-notification
+    restart: unless-stopped
+    depends_on:
+      - eureka-server
+      - postgres-notification
+    ports:
+      - "8091:8091"
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-notification:5432/notification_db
+      SPRING_DATASOURCE_USERNAME: notification_user
+      SPRING_DATASOURCE_PASSWORD: notification_password
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - projet-immo-network
+
+  postgres-avis:
+    image: postgres:15
+    container_name: postgres-avis
+    environment:
+      POSTGRES_DB: db_ms_avis
+      POSTGRES_USER: user_immo
+      POSTGRES_PASSWORD: password_immo
+    ports:
+      - "5442:5432"
+    volumes:
+      - avis_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
+
+  ms-avis:
+    build: ./ms-avis/ms-avis
+    container_name: ms-avis
+    restart: unless-stopped
+    depends_on:
+      - eureka-server
+      - postgres-avis
+      - kafka
+    ports:
+      - "8090:8089"
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-avis:5432/db_ms_avis
+      SPRING_DATASOURCE_USERNAME: user_immo
+      SPRING_DATASOURCE_PASSWORD: password_immo
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      JWT_SECRET: ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - projet-immo-network
+
+  postgres-admin:
+    image: postgres:15
+    container_name: postgres-admin
+    environment:
+      POSTGRES_DB: admin_db
+      POSTGRES_USER: admin_user
+      POSTGRES_PASSWORD: admin_password
+    ports:
+      - "5444:5432"
+    volumes:
+      - admin_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
+
+  service-admin:
+    build: ./service-admin
+    container_name: service-admin
+    restart: unless-stopped
+    depends_on:
+      - eureka-server
+      - postgres-admin
+    ports:
+      - "8083:8083"
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-admin:5432/admin_db
+      SPRING_DATASOURCE_USERNAME: admin_user
+      SPRING_DATASOURCE_PASSWORD: admin_password
+      JWT_SECRET: ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - projet-immo-network
+
+  postgres-signalements:
+    image: postgres:15
+    container_name: postgres-signalements
+    environment:
+      POSTGRES_DB: signalements_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5443:5432"
+    volumes:
+      - signalements_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
+
+  service-signalements:
+    build: ./service-signalements
+    container_name: service-signalements
+    restart: unless-stopped
+    depends_on:
+      - eureka-server
+      - postgres-signalements
+    ports:
+      - "8095:8090"
+    environment:
+      JAVA_TOOL_OPTIONS: *java-opts
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-signalements:5432/signalements_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      JWT_SECRET: ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     networks:
       - projet-immo-network
 
 volumes:
   abonnement_data:
   reservation_data:
+  bien_data:
+  visite_data:
+  payment_data:
+  notification_data:
+  avis_data:
+  signalements_data:
+  admin_data:
 
 networks:
   projet-immo-network:

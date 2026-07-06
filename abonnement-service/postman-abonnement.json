@@ -1,0 +1,198 @@
+{
+  "info": {
+    "name": "Abonnement-Service",
+    "description": "Souscription, renouvellement, paiement (attente/confirme/echec), reessai, stats, endpoints internes + admin. Ports directs: auth 8081, user 8082, abonnement 8087.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "auth", "value": "http://localhost:8081" },
+    { "key": "user", "value": "http://localhost:8082" },
+    { "key": "base", "value": "http://localhost:8087" },
+    { "key": "agentEmail", "value": "agent_abo@test.com" },
+    { "key": "clientEmail", "value": "client_abo@test.com" },
+    { "key": "adminEmail", "value": "admin_abo@test.com" },
+    { "key": "password", "value": "Password123!" },
+    { "key": "agentToken", "value": "" },
+    { "key": "clientToken", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "agentId", "value": "" },
+    { "key": "abonnementId", "value": "" },
+    { "key": "requestId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0 - Setup comptes",
+      "item": [
+        {
+          "name": "Register AGENT",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": "{{auth}}/api/auth/admin/register",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{agentEmail}}\",\n  \"password\": \"{{password}}\",\n  \"firstname\": \"Agent\",\n  \"lastname\": \"Abo\",\n  \"role\": \"ROLE_AGENT\"\n}" }
+          }
+        },
+        {
+          "name": "Register ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": "{{auth}}/api/auth/admin/register",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{password}}\",\n  \"firstname\": \"Admin\",\n  \"lastname\": \"Abo\",\n  \"role\": \"ROLE_ADMIN\"\n}" }
+          }
+        },
+        {
+          "name": "Register CLIENT (role invalide)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": "{{auth}}/api/auth/register",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"password\": \"{{password}}\",\n  \"firstname\": \"Client\",\n  \"lastname\": \"Abo\"\n}" }
+          }
+        },
+        {
+          "name": "Login AGENT (save token+id)",
+          "event": [ { "listen": "test", "script": { "exec": [
+            "var j = pm.response.json();",
+            "pm.collectionVariables.set('agentToken', j.accessToken);",
+            "pm.sendRequest({url: pm.collectionVariables.get('user') + '/api/users/by-email/' + pm.collectionVariables.get('agentEmail'), method:'GET'}, function(e,r){ if(!e) pm.collectionVariables.set('agentId', r.text()); });"
+          ], "type": "text/javascript" } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": "{{auth}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{agentEmail}}\",\n  \"password\": \"{{password}}\"\n}" }
+          }
+        },
+        {
+          "name": "Login ADMIN (save token)",
+          "event": [ { "listen": "test", "script": { "exec": [
+            "pm.collectionVariables.set('adminToken', pm.response.json().accessToken);"
+          ], "type": "text/javascript" } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": "{{auth}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{password}}\"\n}" }
+          }
+        },
+        {
+          "name": "Login CLIENT (save token)",
+          "event": [ { "listen": "test", "script": { "exec": [
+            "pm.collectionVariables.set('clientToken', pm.response.json().accessToken);"
+          ], "type": "text/javascript" } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": "{{auth}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"password\": \"{{password}}\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 - Agent",
+      "item": [
+        {
+          "name": "Souscrire (MENSUEL) -> EN_ATTENTE_PAIEMENT",
+          "event": [ { "listen": "test", "script": { "exec": [
+            "var j = pm.response.json();",
+            "pm.collectionVariables.set('abonnementId', j.id);",
+            "pm.collectionVariables.set('requestId', j.requestId);",
+            "pm.test('statut EN_ATTENTE_PAIEMENT', function(){ pm.expect(j.statut).to.eql('EN_ATTENTE_PAIEMENT'); });"
+          ], "type": "text/javascript" } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{agentToken}}" } ],
+            "url": "{{base}}/api/abonnements",
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"MENSUEL\",\n  \"modePaiement\": \"MOBILE_MONEY\"\n}" }
+          }
+        },
+        {
+          "name": "Souscrire par CLIENT -> 403 (role invalide)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{clientToken}}" } ],
+            "url": "{{base}}/api/abonnements",
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"MENSUEL\"\n}" }
+          }
+        },
+        {
+          "name": "Mon statut",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{agentToken}}" } ], "url": "{{base}}/api/abonnements/mon-statut" }
+        },
+        {
+          "name": "Mon historique",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{agentToken}}" } ], "url": "{{base}}/api/abonnements/mon-historique" }
+        },
+        {
+          "name": "Mon abonnement actif",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{agentToken}}" } ], "url": "{{base}}/api/abonnements/mon-abonnement-actif" }
+        },
+        {
+          "name": "Renouveler (interdit si actif valide)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{agentToken}}" } ],
+            "url": "{{base}}/api/abonnements/renouveler",
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"ANNUEL\",\n  \"modePaiement\": \"MOBILE_MONEY\"\n}" }
+          }
+        },
+        {
+          "name": "Reessayer paiement (si ECHEC_PAIEMENT)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{agentToken}}" } ],
+            "url": "{{base}}/api/abonnements/{{abonnementId}}/reessayer-paiement"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Paiement (simulation Kafka interne)",
+      "item": [
+        {
+          "name": "Simuler paiement CONFIRME -> ACTIF",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": "{{base}}/api/interne/abonnements/simuler-paiement",
+            "body": { "mode": "raw", "raw": "{\n  \"requestId\": \"{{requestId}}\",\n  \"paiementId\": 123,\n  \"statut\": \"SUCCESS\",\n  \"reference\": \"TX-ABO-001\",\n  \"modePaiement\": \"MOBILE_MONEY\"\n}" }
+          }
+        },
+        {
+          "name": "Simuler paiement ECHEC -> ECHEC_PAIEMENT",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": "{{base}}/api/interne/abonnements/simuler-paiement",
+            "body": { "mode": "raw", "raw": "{\n  \"requestId\": \"{{requestId}}\",\n  \"statut\": \"ECHEC\",\n  \"message\": \"Solde insuffisant\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Admin",
+      "item": [
+        { "name": "Tous les abonnements", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ], "url": "{{base}}/api/admin/abonnements" } },
+        { "name": "Par id", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ], "url": "{{base}}/api/admin/abonnements/{{abonnementId}}" } },
+        { "name": "Abonnement inexistant -> 404", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ], "url": "{{base}}/api/admin/abonnements/999999" } },
+        { "name": "Historique d'un user", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ], "url": "{{base}}/api/admin/abonnements/utilisateur/{{agentId}}/historique" } },
+        { "name": "Actif d'un user", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ], "url": "{{base}}/api/admin/abonnements/utilisateur/{{agentId}}/actif" } },
+        { "name": "Statistiques globales", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ], "url": "{{base}}/api/admin/abonnements/statistiques" } },
+        { "name": "Statistiques par periode", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ], "url": "{{base}}/api/admin/abonnements/statistiques/periode?debut=2026-01-01&fin=2026-12-31" } }
+      ]
+    },
+    {
+      "name": "4 - Interne (autres microservices)",
+      "item": [
+        { "name": "Statut d'un user", "request": { "method": "GET", "url": "{{base}}/api/interne/abonnements/utilisateur/{{agentId}}/statut" } },
+        { "name": "Actif d'un user", "request": { "method": "GET", "url": "{{base}}/api/interne/abonnements/utilisateur/{{agentId}}/actif" } },
+        { "name": "Par requestId", "request": { "method": "GET", "url": "{{base}}/api/interne/abonnements/request/{{requestId}}" } },
+        { "name": "requestId inexistant -> 404", "request": { "method": "GET", "url": "{{base}}/api/interne/abonnements/request/inexistant" } },
+        { "name": "Count", "request": { "method": "GET", "url": "{{base}}/api/interne/abonnements/count" } },
+        { "name": "Health", "request": { "method": "GET", "url": "{{base}}/api/interne/abonnements/health" } }
+      ]
+    }
+  ]
+}

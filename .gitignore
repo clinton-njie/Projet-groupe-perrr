@@ -28,3 +28,10 @@ target/
 *.deb
 *.deb
 *.iso
+
+# Secrets / variables d'environnement (clés Cloudinary, etc.) — NE JAMAIS committer
+.env
+.env.*
+
+# Config locale de Claude Code (machine-locale, ne pas versionner)
+.claude/

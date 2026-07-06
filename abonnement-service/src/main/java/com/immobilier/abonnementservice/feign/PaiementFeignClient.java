@@ -6,11 +6,11 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "PAIEMENT-SERVICE")
+// Jamais de paiement direct ici : on demande une prise en charge et on reçoit un accusé
+// {paiementId, statut = EN_ATTENTE}. Le résultat réel arrive ensuite via Kafka (paiement-traite).
+@FeignClient(name = "payment-service")
 public interface PaiementFeignClient {
 
     @PostMapping("/api/paiements")
-    PaiementResponse creerPaiement(
-            @RequestBody PaiementRequest request
-    );
+    PaiementResponse creerPaiement(@RequestBody PaiementRequest request);
 }

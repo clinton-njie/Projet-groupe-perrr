@@ -6,23 +6,44 @@ spring:
     name: abonnement-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/abonnement_db
-    username: postgres
-    password: Pos123,.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/abonnement_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:Pos123,.}
 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
 
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        max.block.ms: 3000
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: abonnement-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.immobilier.abonnementservice.dto.event.PaiementTraiteEvent
+
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
 
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+# Secret partagé par toute la plateforme (auth-service émet, les services vérifient).
 jwt:
-  secret: "cle_secrete"
+  secret: ${JWT_SECRET:ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue}

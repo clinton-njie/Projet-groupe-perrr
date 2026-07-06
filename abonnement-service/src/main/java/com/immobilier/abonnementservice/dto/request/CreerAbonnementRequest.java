@@ -12,4 +12,6 @@ public class CreerAbonnementRequest {
     @NotNull(message = "Type abonnement obligatoire")
     private TypeAbonnement type;
 
+    // Optionnel (ex. MOBILE_MONEY, CARTE). Transmis au paiement.
+    private String modePaiement;
 }

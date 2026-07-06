@@ -19,6 +19,20 @@ spring:
       hibernate:
         format_sql: true
 
+  # Taille max des fichiers image envoyés à l'upload
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+
+# Credentials Cloudinary — JAMAIS en dur : injectés via variables d'environnement.
+# Renseignez CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET
+# dans votre environnement (voir docker-compose.yml ou export shell).
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+
 eureka:
   client:
     enabled: true

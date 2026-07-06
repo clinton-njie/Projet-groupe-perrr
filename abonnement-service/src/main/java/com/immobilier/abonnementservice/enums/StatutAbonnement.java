@@ -6,6 +6,6 @@ public enum StatutAbonnement {
     ACTIF,
     EXPIRE,
     ANNULE,
-    ECHEC
+    ECHEC_PAIEMENT
 
 }

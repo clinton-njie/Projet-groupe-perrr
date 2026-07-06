@@ -5,6 +5,9 @@ import com.immobilier.abonnementservice.dto.response.AbonnementResponse;
 
 public interface SouscriptionService {
 
-    AbonnementResponse souscrire(String token, CreerAbonnementRequest request);
+    // Souscription (agent) : crée EN_ATTENTE_PAIEMENT + requestId + demande de paiement
+    AbonnementResponse souscrire(String authHeader, CreerAbonnementRequest request);
 
+    // Réessai d'un paiement échoué (agent propriétaire, statut ECHEC_PAIEMENT) : nouveau requestId
+    AbonnementResponse reessayerPaiement(String authHeader, Long abonnementId);
 }

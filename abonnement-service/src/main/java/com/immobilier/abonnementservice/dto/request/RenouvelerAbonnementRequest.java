@@ -12,4 +12,5 @@ public class RenouvelerAbonnementRequest {
     @NotNull(message = "Type abonnement obligatoire")
     private TypeAbonnement type;
 
+    private String modePaiement;
 }

@@ -1,16 +1,20 @@
 package com.immobilier.abonnementservice.controller;
 
-import com.immobilier.abonnementservice.dto.commun.ApiResponse;
 import com.immobilier.abonnementservice.dto.request.CreerAbonnementRequest;
 import com.immobilier.abonnementservice.dto.request.RenouvelerAbonnementRequest;
-import com.immobilier.abonnementservice.dto.response.*;
-import com.immobilier.abonnementservice.service.interfaces.*;
-
+import com.immobilier.abonnementservice.dto.response.AbonnementResponse;
+import com.immobilier.abonnementservice.dto.response.HistoriqueAbonnementResponse;
+import com.immobilier.abonnementservice.dto.response.StatutAbonnementResponse;
+import com.immobilier.abonnementservice.service.interfaces.ConsultationService;
+import com.immobilier.abonnementservice.service.interfaces.RenouvellementService;
+import com.immobilier.abonnementservice.service.interfaces.SouscriptionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-
+// Espace AGENT : souscrire, renouveler, réessayer, consulter son abonnement.
 @RestController
 @RequestMapping("/api/abonnements")
 @RequiredArgsConstructor
@@ -20,85 +24,39 @@ public class AbonnementController {
     private final RenouvellementService renouvellementService;
     private final ConsultationService consultationService;
 
-    // =========================
-    // SOUSCRIPTION
-    // =========================
-    @PostMapping("/souscrire")
-    public ApiResponse<AbonnementResponse> souscrire(
+    @PostMapping
+    public ResponseEntity<AbonnementResponse> souscrire(
             @RequestHeader("Authorization") String token,
-            @RequestBody CreerAbonnementRequest request
-    ) {
-
-        return ApiResponse.<AbonnementResponse>builder()
-                .success(true)
-                .message("Abonnement créé avec succès")
-                .timestamp(LocalDateTime.now())
-                .data(souscriptionService.souscrire(token, request))
-                .build();
+            @Valid @RequestBody CreerAbonnementRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(souscriptionService.souscrire(token, request));
     }
 
-    // =========================
-    // RENOUVELLEMENT
-    // =========================
     @PostMapping("/renouveler")
-    public ApiResponse<AbonnementResponse> renouveler(
+    public ResponseEntity<AbonnementResponse> renouveler(
             @RequestHeader("Authorization") String token,
-            @RequestBody RenouvelerAbonnementRequest request
-    ) {
-
-        return ApiResponse.<AbonnementResponse>builder()
-                .success(true)
-                .message("Abonnement renouvelé avec succès")
-                .timestamp(LocalDateTime.now())
-                .data(renouvellementService.renouveler(token, request))
-                .build();
+            @Valid @RequestBody RenouvelerAbonnementRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(renouvellementService.renouveler(token, request));
     }
 
-    // =========================
-    // MON ABONNEMENT
-    // =========================
-    @GetMapping("/me")
-    public ApiResponse<AbonnementResponse> monAbonnement(
-            @RequestHeader("Authorization") String token
-    ) {
-
-        return ApiResponse.<AbonnementResponse>builder()
-                .success(true)
-                .message("Abonnement récupéré")
-                .timestamp(LocalDateTime.now())
-                .data(consultationService.monAbonnement(token))
-                .build();
+    @PostMapping("/{id}/reessayer-paiement")
+    public ResponseEntity<AbonnementResponse> reessayer(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(souscriptionService.reessayerPaiement(token, id));
     }
 
-    // =========================
-    // MON STATUT
-    // =========================
-    @GetMapping("/me/statut")
-    public ApiResponse<StatutAbonnementResponse> monStatut(
-            @RequestHeader("Authorization") String token
-    ) {
-
-        return ApiResponse.<StatutAbonnementResponse>builder()
-                .success(true)
-                .message("Statut récupéré")
-                .timestamp(LocalDateTime.now())
-                .data(consultationService.monStatut(token))
-                .build();
+    @GetMapping("/mon-statut")
+    public ResponseEntity<StatutAbonnementResponse> monStatut(@RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(consultationService.monStatut(token));
     }
 
-    // =========================
-    // HISTORIQUE
-    // =========================
-    @GetMapping("/me/historique")
-    public ApiResponse<HistoriqueAbonnementResponse> historique(
-            @RequestHeader("Authorization") String token
-    ) {
+    @GetMapping("/mon-historique")
+    public ResponseEntity<HistoriqueAbonnementResponse> monHistorique(@RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(consultationService.monHistorique(token));
+    }
 
-        return ApiResponse.<HistoriqueAbonnementResponse>builder()
-                .success(true)
-                .message("Historique récupéré")
-                .timestamp(LocalDateTime.now())
-                .data(consultationService.monHistorique(token))
-                .build();
+    @GetMapping("/mon-abonnement-actif")
+    public ResponseEntity<AbonnementResponse> monActif(@RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(consultationService.monAbonnementActif(token));
     }
 }

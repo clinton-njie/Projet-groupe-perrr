@@ -5,6 +5,6 @@ import com.immobilier.abonnementservice.dto.response.AbonnementResponse;
 
 public interface RenouvellementService {
 
-    AbonnementResponse renouveler(String token, RenouvelerAbonnementRequest request);
-
+    // Renouvellement (agent) : interdit si un abonnement actif est encore valide
+    AbonnementResponse renouveler(String authHeader, RenouvelerAbonnementRequest request);
 }

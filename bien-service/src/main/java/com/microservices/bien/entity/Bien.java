@@ -32,14 +32,18 @@ public class Bien {
     @Column(nullable = false, length = 255)
     private String quartier;
 
+    // URL Cloudinary (secure_url) de la photo principale
     @Column(nullable = false, length = 500)
     private String photoPrincipale;
+
+    // public_id Cloudinary de la photo principale, pour pouvoir la supprimer
+    @Column(length = 255)
+    private String imagePublicId;
 
     @Builder.Default
     @ElementCollection
     @CollectionTable(name = "bien_photos_secondaires", joinColumns = @JoinColumn(name = "bien_id"))
-    @Column(name = "url", length = 500)
-    private List<String> photosSecondaires = new ArrayList<>();
+    private List<ImageBien> photosSecondaires = new ArrayList<>();
 
     @Column(nullable = false)
     private Float prixMensuel;

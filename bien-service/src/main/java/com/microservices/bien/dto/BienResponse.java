@@ -20,7 +20,8 @@ public class BienResponse {
     private String ville;
     private String quartier;
     private String photoPrincipale;
-    private List<String> photosSecondaires;
+    private String imagePublicId;
+    private List<ImageInfo> photosSecondaires;
     private Float prixMensuel;
     private Integer nombrePiecesDisponibles;
     private LocalDate date;

@@ -5,10 +5,13 @@ import com.microservices.bien.service.BienService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -17,6 +20,32 @@ import java.util.List;
 public class BienController {
 
     private final BienService bienService;
+
+    // POST /api/biens/images/upload → Uploader UNE image sur Cloudinary (AGENT/ADMIN)
+    // Retourne { secureUrl, publicId } à réutiliser dans le POST/PUT /api/biens
+    @PostMapping(value = "/images/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ImageUploadResponse> uploadImage(
+            @RequestParam("file") MultipartFile file
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(bienService.uploadImage(file));
+    }
+
+    // POST /api/biens/images/upload-multiple → Uploader PLUSIEURS images d'un coup (AGENT/ADMIN)
+    @PostMapping(value = "/images/upload-multiple", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<ImageUploadResponse>> uploadImages(
+            @RequestParam("files") MultipartFile[] files
+    ) {
+        List<ImageUploadResponse> resultats = Arrays.stream(files)
+                .map(bienService::uploadImage)
+                .toList();
+        return ResponseEntity.status(HttpStatus.CREATED).body(resultats);
+    }
+
+    // DELETE /api/biens/images?publicId=... → Supprimer une image orpheline sur Cloudinary (AGENT/ADMIN)
+    @DeleteMapping("/images")
+    public ResponseEntity<MessageResponse> supprimerImage(@RequestParam("publicId") String publicId) {
+        return ResponseEntity.ok(bienService.supprimerImage(publicId));
+    }
 
     // POST /api/biens → Créer un bien (AGENT/ADMIN)
     @PostMapping
