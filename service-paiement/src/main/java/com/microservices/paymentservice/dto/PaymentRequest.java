@@ -1,5 +1,7 @@
 package com.microservices.paymentservice.dto;
 
+import com.microservices.paymentservice.enums.NatureType;
+import com.microservices.paymentservice.enums.OperateurMobileMoney;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,7 +10,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PaymentRequest {
-private Long visitId;
-private Double montant;
-private String clientId;
+    private Long referenceId;
+    private NatureType referenceType;
+    private String nomUtilisateur;
+    private String nomBien;
+    private Double montant;
+    private OperateurMobileMoney operateur;
+    private String telephone;
 }

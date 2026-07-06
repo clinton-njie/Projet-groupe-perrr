@@ -1,8 +1,11 @@
 package com.microservices.bien.dto;
 
 import com.microservices.bien.entity.Categorie;
+import com.microservices.bien.entity.StatutBien;
 import lombok.*;
+
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -14,12 +17,14 @@ public class BienResponse {
     private Long id;
     private Categorie categorie;
     private String nom;
-    private String localisation;
-    private String image;
-    private Float prix;
+    private String ville;
+    private String quartier;
+    private String photoPrincipale;
+    private List<String> photosSecondaires;
+    private Float prixMensuel;
+    private Integer nombrePiecesDisponibles;
     private LocalDate date;
     private String description;
-    private Long agentId;
     private String agentEmail;
-    private Boolean disponible;
+    private StatutBien statut;
 }

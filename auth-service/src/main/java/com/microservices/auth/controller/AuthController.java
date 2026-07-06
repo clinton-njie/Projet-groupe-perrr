@@ -3,10 +3,12 @@ package com.microservices.auth.controller;
 import com.microservices.auth.dto.AuthResponse;
 import com.microservices.auth.dto.CurrentUserResponse;
 import com.microservices.auth.dto.LoginRequest;
+import com.microservices.auth.dto.LoginResponse;
 import com.microservices.auth.dto.MessageResponse;
 import com.microservices.auth.dto.RefreshTokenRequest;
 import com.microservices.auth.dto.RegisterAdminRequest;
 import com.microservices.auth.dto.RegisterRequest;
+import com.microservices.auth.dto.RegisterResponse;
 import com.microservices.auth.dto.RoleUpdateRequest;
 import com.microservices.auth.service.AuthService;
 import jakarta.validation.Valid;
@@ -26,17 +28,17 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<MessageResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
 
-        MessageResponse response = authService.register(request);
+        RegisterResponse response = authService.register(request);
 
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
 
-        AuthResponse response = authService.login(request);
+        LoginResponse response = authService.login(request);
 
         return ResponseEntity.ok(response);
     }

@@ -1,8 +1,6 @@
 package com.microservices.bien.controller;
 
-import com.microservices.bien.dto.BienRequest;
-import com.microservices.bien.dto.BienResponse;
-import com.microservices.bien.dto.MessageResponse;
+import com.microservices.bien.dto.*;
 import com.microservices.bien.service.BienService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -67,18 +65,44 @@ public class BienController {
         return ResponseEntity.ok(bienService.supprimerBien(id, auth));
     }
 
+    // PUT /api/biens/{id}/statut → Changer le statut (appelé par reservation-service, pas d'auth)
+    @PutMapping("/{id}/statut")
+    public ResponseEntity<BienResponse> changerStatut(
+            @PathVariable Long id,
+            @Valid @RequestBody StatutUpdateRequest request
+    ) {
+        return ResponseEntity.ok(bienService.changerStatut(id, request));
+    }
+
     // GET /api/biens/categorie/{cat} → Filtrer par catégorie (PUBLIC)
     @GetMapping("/categorie/{categorie}")
     public ResponseEntity<List<BienResponse>> parCategorie(@PathVariable String categorie) {
         return ResponseEntity.ok(bienService.getBiensByCategorie(categorie));
     }
 
-    // GET /api/biens/recherche?localisation=... → Recherche (PUBLIC)
+    // GET /api/biens/categorie/{cat}/prix-visite → Prix de visite pour la catégorie (appelé par visite-service)
+    @GetMapping("/categorie/{categorie}/prix-visite")
+    public ResponseEntity<PrixVisiteResponse> prixVisite(@PathVariable String categorie) {
+        return ResponseEntity.ok(bienService.getPrixVisiteByCategorie(categorie));
+    }
+
+    // PUT /api/biens/admin/prix-visite/{cat} → Mettre à jour le prix de visite (ADMIN)
+    @PutMapping("/admin/prix-visite/{categorie}")
+    public ResponseEntity<PrixVisiteResponse> updatePrixVisite(
+            @PathVariable String categorie,
+            @Valid @RequestBody PrixVisiteUpdateRequest request,
+            Authentication auth
+    ) {
+        return ResponseEntity.ok(bienService.updatePrixVisite(categorie, request, auth));
+    }
+
+    // GET /api/biens/recherche?ville=&quartier= → Recherche (PUBLIC)
     @GetMapping("/recherche")
     public ResponseEntity<List<BienResponse>> rechercher(
-            @RequestParam String localisation
+            @RequestParam(required = false) String ville,
+            @RequestParam(required = false) String quartier
     ) {
-        return ResponseEntity.ok(bienService.rechercherParLocalisation(localisation));
+        return ResponseEntity.ok(bienService.rechercherParVilleOuQuartier(ville, quartier));
     }
 
     // GET /api/biens/mes-biens → Biens de l'agent connecté (AGENT)

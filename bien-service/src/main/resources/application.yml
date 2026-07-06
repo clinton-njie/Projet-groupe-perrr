@@ -1,9 +1,9 @@
 server:
-  port: 8082
+  port: 8084
 
 spring:
   application:
-    name: BIEN-SERVICE
+    name: bien-service
 
   datasource:
     url: "jdbc:postgresql://postgres-bien:5432/biendb"

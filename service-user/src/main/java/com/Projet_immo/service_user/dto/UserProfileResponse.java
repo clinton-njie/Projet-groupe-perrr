@@ -9,7 +9,6 @@ import java.time.Instant;
 @AllArgsConstructor
 @Builder
 public class UserProfileResponse {
-    private Long id;
     private Long authUserId;
     private String firstname;
     private String lastname;

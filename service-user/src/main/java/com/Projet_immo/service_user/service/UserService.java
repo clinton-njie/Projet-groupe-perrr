@@ -165,7 +165,6 @@ public class UserService {
     // Mapper entité vers DTO
     private UserProfileResponse mapToResponse(UserProfile profile) {
         return UserProfileResponse.builder()
-                .id(profile.getId())
                 .authUserId(profile.getAuthUserId())
                 .firstname(profile.getFirstname())
                 .lastname(profile.getLastname())

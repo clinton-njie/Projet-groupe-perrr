@@ -1,0 +1,41 @@
+services:
+
+  postgres-notification:
+    image: postgres:15
+    container_name: postgres-notification
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: notification_user
+      POSTGRES_PASSWORD: notification_password
+    ports:
+      - "5440:5432"
+    volumes:
+      - postgres_notification_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
+
+  notification-service:
+    build: .
+    container_name: notification-service
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    depends_on:
+      - postgres-notification
+    environment:
+      SERVER_PORT: 8091
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-notification:5432/notification_db
+      SPRING_DATASOURCE_USERNAME: notification_user
+      SPRING_DATASOURCE_PASSWORD: notification_password
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - projet-immo-network
+
+networks:
+  projet-immo-network:
+    external: true
+    name: projet-groupe-perrr_projet-immo-network
+
+volumes:
+  postgres_notification_data:

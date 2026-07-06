@@ -28,6 +28,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Consulter les biens : tout le monde
                         .requestMatchers(HttpMethod.GET, "/api/biens/**").permitAll()
+                        // Changement de statut : appel inter-service (reservation-service), pas d'auth utilisateur
+                        .requestMatchers(HttpMethod.PUT, "/api/biens/*/statut").permitAll()
                         // Créer/Modifier/Supprimer : AGENT ou ADMIN uniquement
                         .requestMatchers(HttpMethod.POST, "/api/biens/**")
                             .hasAnyAuthority("ROLE_AGENT", "ROLE_ADMIN")

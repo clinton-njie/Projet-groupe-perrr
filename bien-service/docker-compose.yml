@@ -1,0 +1,41 @@
+services:
+
+  postgres-bien:
+    image: postgres:15
+    container_name: postgres-bien
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: biendb
+      POSTGRES_USER: bien_user
+      POSTGRES_PASSWORD: bien_password
+    ports:
+      - "55435:5432"
+    volumes:
+      - postgres_bien_data:/var/lib/postgresql/data
+    networks:
+      - projet-immo-network
+
+  bien-service:
+    build: .
+    container_name: bien-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    depends_on:
+      - postgres-bien
+    environment:
+      SERVER_PORT: 8084
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-bien:5432/biendb
+      SPRING_DATASOURCE_USERNAME: bien_user
+      SPRING_DATASOURCE_PASSWORD: bien_password
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - projet-immo-network
+
+networks:
+  projet-immo-network:
+    external: true
+    name: projet-groupe-perrr_projet-immo-network
+
+volumes:
+  postgres_bien_data:

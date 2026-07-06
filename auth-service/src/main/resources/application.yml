@@ -39,3 +39,6 @@ jwt:
   access-token-expiration: 900000
   refresh-token-expiration: 604800000
 
+services:
+  user-service-url: http://service-utilisateur:8082
+

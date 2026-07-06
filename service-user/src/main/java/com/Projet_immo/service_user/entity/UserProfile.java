@@ -13,11 +13,8 @@ import java.time.Instant;
 @Builder
 public class UserProfile {
 
+    // Même id que l'utilisateur dans auth-service : pas de génération, la valeur est fournie à la création.
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false, unique = true)
     private Long authUserId;
 
     @Column(nullable = false)

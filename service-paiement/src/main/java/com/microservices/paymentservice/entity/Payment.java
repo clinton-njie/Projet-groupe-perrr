@@ -1,5 +1,7 @@
 package com.microservices.paymentservice.entity;
 
+import com.microservices.paymentservice.enums.NatureType;
+import com.microservices.paymentservice.enums.OperateurMobileMoney;
 import com.microservices.paymentservice.enums.PaymentStatut;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -17,21 +19,32 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class Payment {
 
-@Id
-@GeneratedValue(strategy = GenerationType.IDENTITY)
-private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-private Long visitId;
+    // id de la réservation ou de la visite concernée
+    private Long referenceId;
 
-private Double montant;
+    @Enumerated(EnumType.STRING)
+    private NatureType referenceType;
 
-private String clientId;
+    private String nomUtilisateur;
 
-@Column(unique = true)
-private String paymentReference;
+    private String nomBien;
 
-@Enumerated(EnumType.STRING)
-private PaymentStatut statut;
+    private Double montant;
 
-private LocalDateTime createdAt;
+    @Enumerated(EnumType.STRING)
+    private OperateurMobileMoney operateur;
+
+    private String telephone;
+
+    @Column(unique = true)
+    private String paymentReference;
+
+    @Enumerated(EnumType.STRING)
+    private PaymentStatut statut;
+
+    private LocalDateTime createdAt;
 }

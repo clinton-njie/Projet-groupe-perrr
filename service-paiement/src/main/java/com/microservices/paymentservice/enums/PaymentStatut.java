@@ -1,6 +1,10 @@
 package com.microservices.paymentservice.enums;
 
 public enum PaymentStatut {
-REUSSI,
-ECHEC
+    EN_ATTENTE,
+    AUTORISE,
+    REUSSI,
+    ECHEC,
+    CAPTURE,
+    REMBOURSE
 }

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: service-paiement
+    name: payment-service
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5437/payment_db}
@@ -22,6 +22,6 @@ server:
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://eureka-server:8761/eureka/}
   instance:
     prefer-ip-address: true

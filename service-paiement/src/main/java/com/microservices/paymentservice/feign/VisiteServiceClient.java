@@ -6,9 +6,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "service-visite")
+@FeignClient(name = "visite-service")
 public interface VisiteServiceClient {
 
-@PutMapping("/visits/{id}/confirmation-paiement")
-void confirmerPaiement(@PathVariable("id") Long id, @RequestBody VisitConfirmationRequest request);
+    @PutMapping("/api/visites/{id}/confirmer")
+    void confirmer(@PathVariable("id") Long id, @RequestBody VisitConfirmationRequest request);
 }

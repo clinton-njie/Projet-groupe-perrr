@@ -2,11 +2,14 @@ package com.microservices.auth.service;
 
 import com.microservices.auth.dto.AuthResponse;
 import com.microservices.auth.dto.LoginRequest;
+import com.microservices.auth.dto.LoginResponse;
 import com.microservices.auth.dto.MessageResponse;
 import com.microservices.auth.dto.RefreshTokenRequest;
 import com.microservices.auth.dto.RegisterAdminRequest;
 import com.microservices.auth.dto.RegisterRequest;
+import com.microservices.auth.dto.RegisterResponse;
 import com.microservices.auth.dto.RoleUpdateRequest;
+import com.microservices.auth.dto.UserInitRequest;
 import com.microservices.auth.entity.RefreshToken;
 import com.microservices.auth.entity.Role;
 import com.microservices.auth.entity.User;
@@ -14,11 +17,13 @@ import com.microservices.auth.enumtype.RoleName;
 import com.microservices.auth.repository.RoleRepository;
 import com.microservices.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -33,9 +38,13 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final RestTemplate restTemplate;
+
+    @Value("${services.user-service-url}")
+    private String userServiceUrl;
 
     @Transactional
-    public MessageResponse register(RegisterRequest request) {
+    public RegisterResponse register(RegisterRequest request) {
 
         String email = request.getEmail().toLowerCase().trim();
 
@@ -52,8 +61,6 @@ public class AuthService {
         roles.add(clientRole);
 
         User user = User.builder()
-                .firstname(request.getFirstname())
-                .lastname(request.getLastname())
                 .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .enabled(true)
@@ -62,12 +69,17 @@ public class AuthService {
 
         userRepository.save(user);
 
-        return MessageResponse.builder()
-                .message("Utilisateur inscrit avec succès")
+        notifyUserService(user.getId(), request.getFirstname(), request.getLastname(), email);
+
+        return RegisterResponse.builder()
+                .firstname(request.getFirstname())
+                .lastname(request.getLastname())
+                .email(email)
+                .role(clientRole.getName().name())
                 .build();
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
 
         String email = request.getEmail().toLowerCase().trim();
 
@@ -86,11 +98,11 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
-        return AuthResponse.builder()
+        return LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken.getToken())
-                .tokenType("Bearer")
-                .expiresIn(jwtService.getAccessTokenExpiration())
+                .email(user.getEmail())
+                .role(resolveRoleName(user.getRoles()))
                 .build();
     }
 
@@ -174,8 +186,6 @@ public class AuthService {
         roles.add(role);
 
         User user = User.builder()
-                .firstname(request.getFirstname())
-                .lastname(request.getLastname())
                 .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .enabled(true)
@@ -184,8 +194,32 @@ public class AuthService {
 
         userRepository.save(user);
 
+        notifyUserService(user.getId(), request.getFirstname(), request.getLastname(), email);
+
         return MessageResponse.builder()
                 .message("Compte administrateur créé avec succès")
                 .build();
+    }
+
+    // Chaque utilisateur ne porte qu'un seul rôle métier à la fois (voir updateRole/registerAdmin).
+    private String resolveRoleName(Set<Role> roles) {
+        return roles.stream()
+                .findFirst()
+                .map(role -> role.getName().name())
+                .orElse(null);
+    }
+
+    // Transmet le prénom/nom saisis à l'inscription à service-user,
+    // qui reste seul propriétaire de ces données de profil.
+    private void notifyUserService(Long authUserId, String firstname, String lastname, String email) {
+
+        UserInitRequest initRequest = UserInitRequest.builder()
+                .authUserId(authUserId)
+                .firstname(firstname)
+                .lastname(lastname)
+                .email(email)
+                .build();
+
+        restTemplate.postForObject(userServiceUrl + "/api/users/init", initRequest, Object.class);
     }
 }
