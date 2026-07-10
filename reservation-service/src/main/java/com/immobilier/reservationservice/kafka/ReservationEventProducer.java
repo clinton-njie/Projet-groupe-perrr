@@ -1,7 +1,8 @@
 package com.immobilier.reservationservice.kafka;
 
+import com.immobilier.reservationservice.config.RabbitConfig;
 import lombok.RequiredArgsConstructor;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import com.immobilier.reservationservice.dto.ReservationEvent;
 import com.immobilier.reservationservice.dto.TransactionTermineeEvent;
@@ -10,29 +11,20 @@ import com.immobilier.reservationservice.dto.TransactionTermineeEvent;
 @RequiredArgsConstructor
 public class ReservationEventProducer {
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
-    private static final String TOPIC =
-            "reservation-events";
-
-    // Topic consommé par ms-avis (et ms-visite) pour créer les opportunités de notation.
-    private static final String TOPIC_TRANSACTION_TERMINEE =
-            "transaction.terminee";
-
-    public void publish(
-            ReservationEvent event) {
-
-        kafkaTemplate.send(
-                TOPIC,
+    public void publish(ReservationEvent event) {
+        rabbitTemplate.convertAndSend(
+                RabbitConfig.EXCHANGE,
+                RabbitConfig.RK_RESERVATION_EVENTS,
                 event
         );
     }
 
-    public void publishTransactionTerminee(
-            TransactionTermineeEvent event) {
-
-        kafkaTemplate.send(
-                TOPIC_TRANSACTION_TERMINEE,
+    public void publishTransactionTerminee(TransactionTermineeEvent event) {
+        rabbitTemplate.convertAndSend(
+                RabbitConfig.EXCHANGE,
+                RabbitConfig.RK_TRANSACTION_TERMINEE,
                 event
         );
     }

@@ -1,6 +1,6 @@
 package com.immobilier.abonnementservice.kafka;
 
-import com.immobilier.abonnementservice.config.KafkaConfig;
+import com.immobilier.abonnementservice.config.RabbitConfig;
 import com.immobilier.abonnementservice.dto.event.*;
 import com.immobilier.abonnementservice.entity.Abonnement;
 import com.immobilier.abonnementservice.enums.StatutAbonnement;
@@ -9,7 +9,7 @@ import com.immobilier.abonnementservice.utils.PrixAbonnementUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +27,7 @@ public class PaiementTraiteConsumer {
     private final AbonnementEventProducer producer;
     private final EvenementHelper evenements;
 
-    @KafkaListener(topics = KafkaConfig.TOPIC_PAIEMENT_TRAITE, groupId = "abonnement-service")
+    @RabbitListener(queues = RabbitConfig.QUEUE_PAIEMENT_TRAITE)
     @Transactional
     public void consommer(PaiementTraiteEvent event) {
         log.info("paiement-traite reçu : {}", event);

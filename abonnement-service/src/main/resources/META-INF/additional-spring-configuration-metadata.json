@@ -3,30 +3,5 @@
     "name": "jwt.secret",
     "type": "java.lang.String",
     "description": "A description for 'jwt.secret'"
-  },
-  {
-    "name": "jwt.kafka.admin.auto-create",
-    "type": "java.lang.String",
-    "description": "A description for 'jwt.kafka.admin.auto-create'"
-  },
-  {
-    "name": "spring.kafka.kafka.admin",
-    "type": "java.lang.String",
-    "description": "A description for 'spring.kafka.kafka.admin'"
-  },
-  {
-    "name": "spring.kafka.kafka.auto-create",
-    "type": "java.lang.String",
-    "description": "A description for 'spring.kafka.kafka.auto-create'"
-  },
-  {
-    "name": "spring.kafka.autoconfigure.exclude",
-    "type": "java.lang.String",
-    "description": "A description for 'spring.kafka.autoconfigure.exclude'"
-  },
-  {
-    "name": "spring.kafka.kafka.autoconfigure.exclude",
-    "type": "java.lang.String",
-    "description": "A description for 'spring.kafka.kafka.autoconfigure.exclude'"
   }
 ]}

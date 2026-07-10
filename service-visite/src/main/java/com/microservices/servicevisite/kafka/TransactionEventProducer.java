@@ -1,23 +1,22 @@
 package com.microservices.servicevisite.kafka;
 
+import com.microservices.servicevisite.config.RabbitConfig;
 import com.microservices.servicevisite.dto.TransactionTermineeEvent;
 import lombok.RequiredArgsConstructor;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 /**
- * Publie sur le topic "transaction.terminee" quand une visite est TERMINE.
+ * Publie "transaction.terminee" quand une visite est TERMINE.
  * Consommé par ms-avis pour créer l'opportunité de notation.
  */
 @Service
 @RequiredArgsConstructor
 public class TransactionEventProducer {
 
-    public static final String TOPIC_TRANSACTION_TERMINEE = "transaction.terminee";
-
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
     public void publier(TransactionTermineeEvent event) {
-        kafkaTemplate.send(TOPIC_TRANSACTION_TERMINEE, event);
+        rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.RK_TRANSACTION_TERMINEE, event);
     }
 }

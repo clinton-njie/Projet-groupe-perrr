@@ -19,7 +19,7 @@ public class OpportuniteService {
     private OpportuniteRepository opportuniteRepository;
 
     public void creerOpportunite(Long clientId, Long agentId, Long bienId, Long transactionId, TypeTransaction type) {
-        if (opportuniteRepository.findByTransactionId(transactionId).isPresent()) {
+        if (opportuniteRepository.findByTransactionIdAndTypeTransaction(transactionId, type).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Une opportunité existe déjà pour cette transaction");
         }
 

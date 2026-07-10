@@ -1,12 +1,12 @@
 package com.plateforme.immo.avis.kafka;
 
-import com.plateforme.immo.avis.config.KafkaConfig;
+import com.plateforme.immo.avis.config.RabbitConfig;
 import com.plateforme.immo.avis.dto.TransactionInterneDTO;
 import com.plateforme.immo.avis.model.TypeTransaction;
 import com.plateforme.immo.avis.service.OpportuniteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -25,12 +25,9 @@ public class TransactionConsumer {
         this.opportuniteService = opportuniteService;
     }
 
-    @KafkaListener(
-            topics = KafkaConfig.TOPIC_TRANSACTION_TERMINEE,
-            groupId = "ms-avis"
-    )
+    @RabbitListener(queues = RabbitConfig.QUEUE_TRANSACTION_TERMINEE)
     public void consommer(TransactionInterneDTO event) {
-        log.info("Événement '{}' reçu : {}", KafkaConfig.TOPIC_TRANSACTION_TERMINEE, event);
+        log.info("Événement '{}' reçu : {}", RabbitConfig.RK_TRANSACTION_TERMINEE, event);
 
         final TypeTransaction type;
         try {

@@ -85,5 +85,5 @@ id_of() { curl -s "http://$H:$PORT_USER/api/users/by-email/$1"; }
 creer_bien() {
   local token="$1" cat="${2:-APPARTEMENT}"
   curl -s -X POST "http://$H:$PORT_BIEN/api/biens" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
-    -d "{\"categorie\":\"$cat\",\"nom\":\"Bien $TS\",\"ville\":\"Douala\",\"quartier\":\"Akwa\",\"photoPrincipale\":\"p\",\"photosSecondaires\":[],\"prixMensuel\":100000,\"nombrePiecesDisponibles\":2,\"description\":\"e2e\"}" | jget id
+    -d "{\"categorie\":\"$cat\",\"nom\":\"Bien $TS\",\"ville\":\"Douala\",\"quartier\":\"Akwa\",\"photoPrincipale\":\"http://img/p.jpg\",\"imagePublicId\":\"e2e/fake_${TS}\",\"photosSecondaires\":[],\"prixMensuel\":100000,\"nombrePiecesDisponibles\":2,\"description\":\"e2e\"}" | jget id
 }

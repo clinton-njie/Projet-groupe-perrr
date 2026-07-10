@@ -1,6 +1,6 @@
 # Plafond mémoire JVM partagé par tous les services Spring Boot.
 # SerialGC + metaspace/threads réduits : indispensable pour faire tenir ~11 services
-# + Kafka + 9 bases dans une VM Docker à mémoire limitée.
+# + RabbitMQ + 9 bases dans une VM Docker à mémoire limitée.
 x-java-opts: &java-opts "-Xmx200m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -Xss512k"
 
 services:
@@ -15,23 +15,21 @@ services:
     networks:
       - projet-immo-network
 
-  kafka:
-    image: apache/kafka:3.8.0
-    container_name: kafka
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
     restart: unless-stopped
     environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_HEAP_OPTS: "-Xmx256m -Xms128m"
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-immo}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-immo_password}
+    ports:
+      - "5672:5672"     # AMQP (services)
+      - "15672:15672"   # Console de gestion (http://localhost:15672)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
     networks:
       - projet-immo-network
 
@@ -146,7 +144,7 @@ services:
     restart: unless-stopped
     depends_on:
       - postgres-abonnement
-      - kafka
+      - rabbitmq
     ports:
       - "8087:8087"
     environment:
@@ -154,7 +152,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-abonnement:5432/abonnement_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: password
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-immo}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-immo_password}
       JWT_SECRET: ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     networks:
@@ -180,7 +181,7 @@ services:
     restart: unless-stopped
     depends_on:
       - postgres-reservation
-      - kafka
+      - rabbitmq
     ports:
       - "8086:8086"
     environment:
@@ -188,7 +189,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-reservation:5432/reservation_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: password
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-immo}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-immo_password}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     networks:
       - projet-immo-network
@@ -246,7 +250,7 @@ services:
     depends_on:
       - eureka-server
       - mysql-visite
-      - kafka
+      - rabbitmq
     ports:
       - "8085:8085"
     environment:
@@ -254,7 +258,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-visite:3306/service_visite_db
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-immo}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-immo_password}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     networks:
       - projet-immo-network
@@ -344,7 +351,7 @@ services:
     depends_on:
       - eureka-server
       - postgres-avis
-      - kafka
+      - rabbitmq
     ports:
       - "8090:8089"
     environment:
@@ -352,7 +359,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-avis:5432/db_ms_avis
       SPRING_DATASOURCE_USERNAME: user_immo
       SPRING_DATASOURCE_PASSWORD: password_immo
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-immo}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-immo_password}
       JWT_SECRET: ma-cle-secrete-temporaire-a-remplacer-plus-tard-avec-une-vraie-cle-longue
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
     networks:

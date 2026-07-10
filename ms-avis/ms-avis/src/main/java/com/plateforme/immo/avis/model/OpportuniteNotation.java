@@ -5,7 +5,10 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "opportunites_notation")
+@Table(name = "opportunites_notation",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_opportunite_transaction_type",
+                columnNames = {"transaction_id", "type_transaction"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,7 +27,7 @@ public class OpportuniteNotation {
     @Column(nullable = false)
     private Long bienId;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private Long transactionId;
 
     @Enumerated(EnumType.STRING)

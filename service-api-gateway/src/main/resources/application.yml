@@ -6,32 +6,88 @@ spring:
     name: service-api-gateway
   cloud:
     gateway:
-      discovery:
-        locator:
-          enabled: true
-          lower-case-service-id: true
-      routes:
-        - id: service-auth
-          uri: lb://service-auth
-          predicates:
-            - Path=/api/auth/**
-
-        - id: service-utilisateur
-          uri: lb://service-utilisateur
-          predicates:
-            - Path=/api/utilisateurs/**
-
-        - id: service-client
-          uri: lb://service-client
-          predicates:
-            - Path=/api/clients/**
-
-        # Ajoute les autres services de la même façon
+      server:
+        webmvc:
+          # Proxy direct vers chaque microservice par son alias réseau Docker + port interne.
+          # Le chemin complet est transmis tel quel (les contrôleurs gardent leur @RequestMapping).
+          routes:
+            - id: auth
+              uri: http://auth-service:8081
+              predicates:
+                - Path=/api/auth/**
+            - id: users
+              uri: http://service-utilisateur:8082
+              predicates:
+                - Path=/api/users/**
+            - id: users-internal
+              uri: http://service-utilisateur:8082
+              predicates:
+                - Path=/internal/users/**
+            - id: admin-users
+              uri: http://service-admin:8083
+              predicates:
+                - Path=/admin/users/**
+            - id: admin-signalements
+              uri: http://service-admin:8083
+              predicates:
+                - Path=/admin/signalements/**
+            - id: admin-invites
+              uri: http://service-admin:8083
+              predicates:
+                - Path=/admin/invites/**
+            - id: biens
+              uri: http://bien-service:8084
+              predicates:
+                - Path=/api/biens/**
+            - id: visites
+              uri: http://service-visite:8085
+              predicates:
+                - Path=/api/visites/**
+            - id: visits-slots
+              uri: http://service-visite:8085
+              predicates:
+                - Path=/visits/**
+            - id: reservations
+              uri: http://reservation-service:8086
+              predicates:
+                - Path=/api/reservations/**
+            - id: abonnements-admin
+              uri: http://abonnement-service:8087
+              predicates:
+                - Path=/api/admin/abonnements/**
+            - id: abonnements-interne
+              uri: http://abonnement-service:8087
+              predicates:
+                - Path=/api/interne/abonnements/**
+            - id: abonnements
+              uri: http://abonnement-service:8087
+              predicates:
+                - Path=/api/abonnements/**
+            - id: payments
+              uri: http://service-paiement:8088
+              predicates:
+                - Path=/payments/**
+            - id: messages
+              uri: http://service-messagerie:8089
+              predicates:
+                - Path=/api/messages/**
+            - id: avis
+              uri: http://ms-avis:8089
+              predicates:
+                - Path=/api/avis/**
+            - id: notifications
+              uri: http://service-notification:8091
+              predicates:
+                - Path=/api/notifications/**
+            - id: signalements
+              uri: http://service-signalements:8090
+              predicates:
+                - Path=/signalements/**
 
 eureka:
   client:
     service-url:
-      defaultZone: http://eureka-server:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://eureka-server:8761/eureka/}
   instance:
     prefer-ip-address: true
 
