@@ -1,0 +1,183 @@
+/* ------------------------------------------------------------------
+   Overrides React : la maquette d'origine était une SPA à "pages"
+   masquées (.page{display:none}) togglées en JS. Avec React Router,
+   chaque route rend sa page : on neutralise donc ces bascules.
+------------------------------------------------------------------ */
+.page { display: block !important; }
+.view { display: block !important; }
+
+/* Les shells agent/admin sont rendus par leur layout, pas par une classe body. */
+.app { display: block; }
+#app-agent, #app-admin { display: flex; min-height: 100svh; }
+
+/* Liens cliquables rendus via <button>/<Link> — cohérence visuelle */
+.linklike { background: none; border: none; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+
+/* Le contenu client démarre sous la nav fixe (pages internes) */
+.client-inner { padding-top: 0; }
+
+/* Placeholder photo : léger grain/vignette commun */
+.ph, .listing-media .ph, .cat .ph, .detail-hero .g .ph { background-color: var(--navy); }
+
+/* Hero : les vraies photos sont claires → on les assombrit pour la lisibilité du texte */
+.hero-slide .img { filter: brightness(0.58) saturate(1.05) contrast(1.02); }
+.hero::before {
+  background:
+    linear-gradient(to bottom, rgba(11,30,64,.55), rgba(11,30,64,.20) 32%, rgba(11,30,64,.30) 60%, rgba(11,30,64,.72) 100%),
+    linear-gradient(115deg, rgba(11,30,64,.55), rgba(11,30,64,.10) 55%) !important;
+}
+
+/* Petites aides layout réutilisées dans les pages React */
+.stack-sm > * + * { margin-top: 10px; }
+.muted { color: var(--muted); }
+.center { text-align: center; }
+.mt-24 { margin-top: 24px; }
+.hidden { display: none !important; }
+
+/* Aperçu image de profil choisie localement (avant upload réel) */
+.avatar-edit { position: relative; cursor: pointer; display: inline-block; }
+.avatar-edit .cam {
+  position: absolute; right: 0; bottom: 8px; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--gold); color: var(--navy-deep); display: flex; align-items: center;
+  justify-content: center; font-size: 14px; border: 2px solid var(--paper);
+}
+.avatar-edit input[type=file] { display: none; }
+
+/* La fenêtre de notation : grille des 6 critères */
+.crit .stars { font-size: 20px; }
+
+/* Spinner */
+.spinner {
+  width: 34px; height: 34px; border-radius: 50%; margin: 0 auto;
+  border: 3px solid var(--line); border-top-color: var(--gold); animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Bandeau hors-ligne (global) */
+.offline-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 400;
+  background: #B23A3A; color: #fff; text-align: center;
+  font-size: 13px; letter-spacing: .03em; padding: 8px 14px;
+}
+
+/* Bouton d'installation dans la nav */
+.install-slot { display: inline-flex; align-items: center; }
+
+/* Champ en erreur */
+.field .err { color: #B23A3A; font-size: 12px; margin-top: 6px; }
+.form-error { background: rgba(178,58,58,.08); border-left: 3px solid #B23A3A; color: #7a1f1f;
+  padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+
+/* Petit lien bouton */
+.btn-sm { padding: 8px 16px !important; width: auto !important; font-size: 12px !important; }
+
+/* ===== Profil public d'un agent ===== */
+.agent-hero { display: flex; gap: 34px; align-items: center; background: var(--paper);
+  border: 1px solid var(--line); padding: 34px; margin-top: 10px; flex-wrap: wrap; }
+.agent-hero-av { width: 110px; height: 110px; border-radius: 50%; flex: none;
+  background-size: cover; background-position: center; border: 2px solid var(--gold); overflow: hidden; }
+.agent-hero-info { flex: 1; min-width: 260px; }
+.agent-hero-info h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 4vw, 42px); color: var(--navy); line-height: 1.05; margin: 8px 0 6px; }
+.agent-hero-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+.agent-hero-meta .verif { color: var(--gold-deep); }
+.agent-hero-stats { display: flex; gap: 40px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+.agent-hero-stats .ahs .v { font-size: 30px; color: var(--navy); line-height: 1; }
+.agent-hero-stats .ahs .l { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.agent-hero-bio { margin-top: 16px; font-size: 14.5px; color: var(--ink); font-weight: 300; max-width: 60ch; line-height: 1.6; }
+@media (max-width: 640px) { .agent-hero { gap: 20px; padding: 22px; } }
+
+/* ===== Skeleton shimmer ===== */
+.skl { background: linear-gradient(100deg, var(--line) 30%, rgba(255,255,255,.35) 50%, var(--line) 70%);
+  background-size: 200% 100%; animation: shimmer 1.3s infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* ===== Mini graphiques ===== */
+.barchart { display: flex; flex-direction: column; gap: 12px; }
+.bc-row { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+.bc-label { width: 130px; color: var(--muted); flex: none; text-align: right; }
+.bc-track { flex: 1; height: 10px; background: var(--line); border-radius: 6px; overflow: hidden; }
+.bc-fill { display: block; height: 100%; border-radius: 6px; transition: width .6s ease; }
+.bc-val { width: 60px; text-align: right; color: var(--navy); font-weight: 600; flex: none; }
+.donut-wrap { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+.donut-total { font-family: var(--serif); font-size: 26px; fill: var(--navy); }
+.donut-legend { display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; color: var(--ink); }
+.dl-row { display: flex; align-items: center; gap: 9px; }
+.dl-dot { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+.dl-row b { margin-left: auto; color: var(--navy); }
+
+/* ===== Lightbox ===== */
+.lightbox { position: fixed; inset: 0; z-index: 500; background: rgba(6,12,24,.94);
+  display: flex; align-items: center; justify-content: center; }
+.lb-stage { width: min(92vw, 1200px); height: 86vh; }
+.lb-close { position: absolute; top: 18px; right: 24px; background: none; border: none; color: #fff; font-size: 34px; cursor: pointer; }
+.lb-arrow { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.12); color: #fff;
+  border: none; width: 52px; height: 52px; font-size: 30px; cursor: pointer; transition: background .2s; }
+.lb-arrow:hover { background: rgba(255,255,255,.28); }
+.lb-prev { left: 20px; } .lb-next { right: 20px; }
+.lb-counter { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 13px; letter-spacing: .1em; }
+
+/* ===== Menu partage ===== */
+.share-menu { position: absolute; top: 100%; left: 0; right: 0; margin-top: 6px; background: var(--paper);
+  border: 1px solid var(--line); box-shadow: 0 18px 40px -18px rgba(11,30,64,.4); z-index: 30; }
+.share-menu a { display: block; padding: 12px 16px; font-size: 14px; color: var(--ink); cursor: pointer; border-bottom: 1px solid var(--line); }
+.share-menu a:last-child { border-bottom: none; }
+.share-menu a:hover { background: rgba(16,44,92,.05); }
+
+/* ===== Bouton bascule thème ===== */
+.theme-toggle { background: none; border: none; cursor: pointer; font-size: 18px; color: inherit; padding: 4px; line-height: 1; }
+
+/* ===== FAQ ===== */
+.faq-item { border-bottom: 1px solid var(--line); }
+.faq-q { width: 100%; background: none; border: none; text-align: left; display: flex; align-items: center;
+  justify-content: space-between; gap: 16px; padding: 18px 4px; font-size: 16px; color: var(--navy);
+  font-family: var(--serif); cursor: pointer; }
+.faq-ic { color: var(--gold-deep); font-size: 20px; flex: none; }
+.faq-a { padding: 0 4px 20px; color: var(--ink); font-weight: 300; font-size: 14.5px; line-height: 1.7; max-width: 70ch; }
+
+/* ===== Biens similaires / bandeau récents ===== */
+.mini-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+@media (max-width: 900px) { .mini-grid { grid-template-columns: repeat(2, 1fr); } }
+.saved-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 8px 0 20px; }
+.saved-chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line);
+  background: var(--paper); padding: 7px 12px; font-size: 12.5px; color: var(--ink); border-radius: 2px; cursor: pointer; }
+.saved-chip .x { color: var(--muted); }
+
+/* ===== Cartes agent (Nos agents) ===== */
+.agent-card { background: var(--paper); border: 1px solid var(--line); padding: 26px 20px; text-align: center; }
+.agent-card-av { width: 92px; height: 92px; border-radius: 50%; margin: 0 auto 14px; background-size: cover;
+  background-position: center; border: 2px solid var(--gold); overflow: hidden; }
+.agent-card-name { font-size: 20px; color: var(--navy); }
+.agent-card-meta { font-size: 12.5px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* ============================================================
+   THEME SOMBRE
+   ============================================================ */
+:root[data-theme="dark"] {
+  --canvas: #0c1524; --paper: #14223d; --line: #2a3a56;
+  --ink: #e7edf6; --muted: #9db0cb; --white: #0f1c33;
+}
+:root[data-theme="dark"] body { background: var(--canvas); color: var(--ink); }
+/* Titres serif habituellement en navy -> texte clair en sombre */
+:root[data-theme="dark"] .serif { color: var(--ink); }
+:root[data-theme="dark"] .nav.solid, :root[data-theme="dark"] .nav.force-solid { background: var(--paper); box-shadow: 0 1px 0 var(--line); }
+:root[data-theme="dark"] .nav.solid .brand, :root[data-theme="dark"] .nav.force-solid .brand,
+:root[data-theme="dark"] .nav.solid .nav-links a, :root[data-theme="dark"] .nav.force-solid .nav-links a,
+:root[data-theme="dark"] .nav.solid .nav-login, :root[data-theme="dark"] .nav.force-solid .nav-login { color: var(--ink); }
+:root[data-theme="dark"] .nav.solid .btn-nav, :root[data-theme="dark"] .nav.force-solid .btn-nav { color: var(--ink); border-color: var(--muted); }
+/* Champs de formulaire */
+:root[data-theme="dark"] .field input, :root[data-theme="dark"] .field select, :root[data-theme="dark"] .field textarea,
+:root[data-theme="dark"] .frange input, :root[data-theme="dark"] .sortbar select, :root[data-theme="dark"] .search-field input,
+:root[data-theme="dark"] .search-field select, :root[data-theme="dark"] .thread-input input {
+  background: var(--white); color: var(--ink); border-color: var(--line); }
+:root[data-theme="dark"] .search { background: rgba(20,34,61,.94); }
+:root[data-theme="dark"] .listing-price, :root[data-theme="dark"] .d-spec .v, :root[data-theme="dark"] .bc-val,
+:root[data-theme="dark"] .dl-row b, :root[data-theme="dark"] .stat .v, :root[data-theme="dark"] .rev-bar .v { color: var(--ink); }
+:root[data-theme="dark"] .pill { color: var(--ink); }
+:root[data-theme="dark"] .tbl td { color: var(--ink); }
+:root[data-theme="dark"] .msg-item.on, :root[data-theme="dark"] .msg-item:hover,
+:root[data-theme="dark"] .snav a.on, :root[data-theme="dark"] .snav a:hover { background: rgba(255,255,255,.05); }
+:root[data-theme="dark"] .bub.them { background: var(--paper); color: var(--ink); }
+:root[data-theme="dark"] .skl { background: linear-gradient(100deg, var(--line) 30%, rgba(255,255,255,.10) 50%, var(--line) 70%); background-size: 200% 100%; }
+/* Sidebar agent reste claire -> on l'assombrit */
+:root[data-theme="dark"] .side { background: var(--paper); border-right-color: var(--line); }
+:root[data-theme="dark"] .app-top { background: var(--paper); border-bottom-color: var(--line); }
